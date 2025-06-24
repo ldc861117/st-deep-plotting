@@ -8,5 +8,6 @@
     "author": "User",
     "version": "1.0.0",
     "homePage": "https://github.com/ldc861117/st-deep-plotting",
-    "description": "A test extension for SillyTavern."
+    "description": "A test extension for SillyTavern.",
+    "update_url": "https://github.com/ldc861117/st-deep-plotting/raw/main/manifest.json"
 }

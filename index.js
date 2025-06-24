@@ -22,6 +22,26 @@ const defaultSettings = {
     completedArcStages: {}, // format: "{arcIndex}-{stageIndex}": true/false
 };
 
+// Version check function for extension updates
+async function checkVersion() {
+    try {
+        // Fetch the latest manifest
+        const response = await fetch('https://github.com/ldc861117/st-deep-plotting/raw/main/manifest.json');
+        if (response.ok) {
+            const manifest = await response.json();
+            const latestVersion = manifest.version;
+            const currentVersion = '1.0.0'; // Should match the version in manifest.json
+            
+            console.log(`Deep Plotting: Current version: ${currentVersion}, Latest version: ${latestVersion}`);
+            return { hasUpdate: currentVersion !== latestVersion, version: latestVersion };
+        }
+        return { hasUpdate: false, version: null };
+    } catch (err) {
+        console.error("Failed to check Deep Plotting version:", err);
+        return { hasUpdate: false, version: null };
+    }
+}
+
 // Create plot progress tracker
 class PlotProgress {
     constructor(settings) {
@@ -293,6 +313,17 @@ $(document).ready(function() {
 
         // Register event handlers - use a more compatible approach
         eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
+        
+        // Register version check for extension updates
+        registerSlashCommand('deep-plotting-update', async (_, value) => {
+            toastr.info('Checking for updates...', 'Deep Plotting');
+            const { hasUpdate, version } = await checkVersion();
+            if (hasUpdate) {
+                toastr.success(`Update available: ${version}. Use Extensions menu to update.`, 'Deep Plotting');
+            } else {
+                toastr.success('No updates available.', 'Deep Plotting');
+            }
+        });
 
         console.log("Deep Plotting extension loaded successfully!");
     } catch (error) {
