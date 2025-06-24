@@ -150,7 +150,7 @@ class PlotProgress {
     setStageCompleted(actIndex, stageIndex, completed) {
         const key = `${actIndex}-${stageIndex}`;
         this.settings.completedStages[key] = completed;
-        saveSettingsDebounced();
+        window.saveSettingsDebounced();
     }
 }
 
@@ -175,7 +175,7 @@ class CharacterArcProgress {
             this.settings.characterArcs[arcIndex].stages[stageIndex].completed = completed;
         }
 
-        saveSettingsDebounced();
+        window.saveSettingsDebounced();
     }
 }
 
@@ -365,7 +365,7 @@ class CharacterArcManager {
         $(document).on('click', '.delete-arc-btn', (e) => {
             const arcIndex = $(e.currentTarget).data('arc');
             this.extension.settings.characterArcs.splice(arcIndex, 1);
-            saveSettingsDebounced();
+            window.saveSettingsDebounced();
             $('#character-arcs').html(this.renderCharacterArcs());
         });
     }
@@ -378,7 +378,7 @@ class CharacterArcManager {
 class DeepPlottingExtension {
     constructor() {
         // Get extension settings
-        this.settings = extension_settings[EXTENSION_NAME];
+        this.settings = window.extension_settings[EXTENSION_NAME];
         this.plotManager = new PlotManager(this);
         this.characterArcManager = new CharacterArcManager(this);
         this.plotProgress = new PlotProgress(this.settings);
@@ -391,7 +391,7 @@ class DeepPlottingExtension {
 
         // Create a copy of the template
         this.settings.activePlot = JSON.parse(JSON.stringify(template));
-        saveSettingsDebounced();
+        window.saveSettingsDebounced();
     }
 
     createCharacterArc(templateKey, characterName) {
@@ -410,7 +410,7 @@ class DeepPlottingExtension {
 
         const arcIndex = this.settings.characterArcs.length;
         this.settings.characterArcs.push(newArc);
-        saveSettingsDebounced();
+        window.saveSettingsDebounced();
 
         return arcIndex;
     }
@@ -422,7 +422,7 @@ class DeepPlottingExtension {
             return;
         }
 
-        const context = getContext();
+        const context = window.getContext();
         if (!context) return;
 
         const act = this.settings.activePlot.acts[actIndex];
@@ -450,7 +450,7 @@ class DeepPlottingExtension {
             return;
         }
 
-        const context = getContext();
+        const context = window.getContext();
         if (!context) return;
 
         const arc = this.settings.characterArcs[arcIndex];
@@ -529,22 +529,22 @@ class DeepPlottingExtension {
         // Main settings
         $(`#${EXTENSION_NAME}_enabled`).on('change', (e) => {
             this.settings.enabled = !!$(e.target).prop('checked');
-            saveSettingsDebounced();
+            window.saveSettingsDebounced();
         });
 
         $(`#${EXTENSION_NAME}_auto_inject`).on('change', (e) => {
             this.settings.autoInject = !!$(e.target).prop('checked');
-            saveSettingsDebounced();
+            window.saveSettingsDebounced();
         });
 
         $(`input[name="${EXTENSION_NAME}_position"]`).on('change', (e) => {
             this.settings.plotPosition = $(e.target).val();
-            saveSettingsDebounced();
+            window.saveSettingsDebounced();
         });
 
         $('#plot-notes').on('input', (e) => {
             this.settings.plotNotes = $(e.target).val();
-            saveSettingsDebounced();
+            window.saveSettingsDebounced();
         });
 
         // Drawer toggle
@@ -563,11 +563,10 @@ class DeepPlottingExtension {
 
 // Handle chat changes
 function onChatChanged() {
-    const settings = extension_settings[EXTENSION_NAME];
-    if (!settings || !settings.enabled) return;
+    if (!window.extension_settings?.[EXTENSION_NAME]?.enabled) return;
 
     // Auto inject logic can go here
-    if (settings.autoInject) {
+    if (window.extension_settings[EXTENSION_NAME].autoInject) {
         // Implement auto inject logic based on context
     }
 }
@@ -575,27 +574,51 @@ function onChatChanged() {
 // Initialize extension settings
 function loadSettings() {
     // Initialize settings if they don't exist
-    if (!extension_settings[EXTENSION_NAME]) {
-        extension_settings[EXTENSION_NAME] = defaultSettings;
-        saveSettingsDebounced();
+    if (!window.extension_settings[EXTENSION_NAME]) {
+        console.log(`[${EXTENSION_NAME}] Creating default settings`);
+        window.extension_settings[EXTENSION_NAME] = Object.assign({}, defaultSettings);
+        window.saveSettingsDebounced();
     }
+    return window.extension_settings[EXTENSION_NAME];
 }
 
-// Module initialization
-jQuery(function() {
-    // This runs when the document is ready
+// Wait for SillyTavern to fully load before initializing
+function waitForExtensionSettings(callback) {
+    console.log(`[${EXTENSION_NAME}] Waiting for extension_settings...`);
+    const checkInterval = setInterval(function() {
+        if (window.extension_settings) {
+            console.log(`[${EXTENSION_NAME}] extension_settings found, initializing...`);
+            clearInterval(checkInterval);
+            callback();
+        }
+    }, 100);
+    
+    // Timeout after 30 seconds
+    setTimeout(function() {
+        clearInterval(checkInterval);
+        console.error(`[${EXTENSION_NAME}] Timed out waiting for extension_settings`);
+    }, 30000);
+}
+
+// Initialize extension
+function initializeExtension() {
     try {
-        // This is the standard SillyTavern extension pattern
         loadSettings();
         const extension = new DeepPlottingExtension();
         extension.createUI();
         
-        // Register event handlers
-        eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
+        // Register event handlers using window globals
+        window.eventSource.on(window.event_types.CHAT_CHANGED, onChatChanged);
         
-        // Add console log for debugging
-        console.log(`${EXTENSION_NAME} extension loaded`);
+        console.log(`[${EXTENSION_NAME}] Extension loaded successfully`);
     } catch (error) {
         console.error(`Error loading ${EXTENSION_NAME} extension:`, error);
+        console.error(error.stack);
     }
+}
+
+// Start initialization when document is ready
+jQuery(() => {
+    console.log(`[${EXTENSION_NAME}] Document ready, waiting for SillyTavern...`);
+    waitForExtensionSettings(initializeExtension);
 });
