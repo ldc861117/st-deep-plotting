@@ -1,91 +1,167 @@
+/* Deep Plotting Extension Styles */
 #deep_plotting_settings {
-    margin: 10px;
+    display: none;
 }
 
-#deep_plotting_settings .inline-drawer {
-    background-color: var(--black50a);
-    border: 1px solid var(--black70a);
-    border-radius: 10px;
-    margin-bottom: 10px;
-}
-
-#deep_plotting_settings .inline-drawer-header {
-    padding: 10px;
+#deep_plotting_menu {
+    width: 100%;
     cursor: pointer;
-    user-select: none;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
 }
 
-#deep_plotting_settings .inline-drawer-content {
-    padding: 10px;
-    border-top: 1px solid var(--black70a);
-}
-
-#deep_plotting_settings .plot-section {
+.plot-section {
     margin: 10px 0;
     padding: 10px;
-    border: 1px solid var(--black70a);
+    border: 1px solid var(--border-color);
     border-radius: 5px;
+    background-color: var(--background-color3, #0e0e0e);
 }
 
-#deep_plotting_settings .plot-point {
-    margin: 5px 0;
+.plot-section h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1em;
+    font-weight: bold;
+}
+
+.plot-element {
+    margin-bottom: 5px;
     padding: 5px;
-    background-color: var(--black30a);
-    border-radius: 5px;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    background-color: var(--background-color2, #181818);
+}
+
+.plot-element-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 5px;
 }
 
-#deep_plotting_settings .plot-point-controls {
+.plot-element-title {
+    font-weight: bold;
+}
+
+.plot-element-actions {
     display: flex;
     gap: 5px;
 }
 
-#deep_plotting_settings .plot-header {
+.plot-element-content {
+    margin-top: 5px;
+}
+
+.plot-element-add {
+    margin-top: 10px;
     display: flex;
+    gap: 5px;
+}
+
+.plot-element-add input {
+    flex-grow: 1;
+}
+
+/* SillyTavern extension compatibility */
+.extension_settings {
+    display: none;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.inline-drawer {
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+.inline-drawer-header {
+    display: flex;
+    align-items: center;
     justify-content: space-between;
+    padding: 10px;
+    background-color: var(--background-color3, #0e0e0e);
+    cursor: pointer;
+}
+
+.inline-drawer-content {
+    padding: 10px;
+    background-color: var(--background-color2, #181818);
+}
+
+.inline-drawer-icon {
+    transition: transform 0.3s ease;
+}
+
+.inline-drawer.open .inline-drawer-icon {
+    transform: rotate(180deg);
+}
+
+.checkbox_label {
+    display: flex;
     align-items: center;
     margin-bottom: 10px;
 }
 
-#deep_plotting_settings .character-arc {
-    margin: 10px 0;
-    padding: 10px;
-    border: 1px solid var(--black70a);
-    border-radius: 5px;
+.checkbox_label input[type="checkbox"] {
+    margin-right: 10px;
 }
 
-.plot-visualization {
-    width: 100%;
-    height: 250px;
-    background-color: var(--black30a);
-    border-radius: 5px;
-    margin: 10px 0;
-    padding: 10px;
-    overflow: auto;
+.radio_label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+    margin-left: 20px;
 }
 
-.plot-template-selector {
+.radio_label input[type="radio"] {
+    margin-right: 10px;
+}
+
+.deep_plotting_position {
+    margin: 10px 0;
+}
+
+.text_pole {
     width: 100%;
+    background-color: var(--background-color1, #0b0b0b);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
     padding: 5px;
-    margin: 10px 0;
+    font-family: inherit;
 }
 
-.character-arc-progress {
-    width: 100%;
-    height: 20px;
-    background-color: var(--black30a);
-    border-radius: 10px;
-    margin: 5px 0;
-    overflow: hidden;
+.textarea_compact {
+    resize: vertical;
+    min-height: 60px;
 }
 
-.character-arc-progress-bar {
-    height: 100%;
-    background-color: var(--accent);
-    border-radius: 10px;
+/* Make the extension menu item match other extensions */
+#extensionsMenu .list-group-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 0;
+    border-bottom: 1px solid var(--border-color);
+    background-color: transparent;
+    transition: background-color 0.3s ease;
+}
+
+#extensionsMenu .list-group-item:hover {
+    background-color: var(--background-color3, #0e0e0e);
+}
+
+.extensionsMenuExtensionButton {
+    margin-right: 5px;
+}
+
+.flex-container {
+    display: flex;
+    align-items: center;
+}
+
+.flexGap5 {
+    gap: 5px;
 }
