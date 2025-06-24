@@ -519,24 +519,6 @@ class DeepPlottingExtension {
             saveSettingsDebounced();
         });
         
-        // Set up the drawer toggle functionality
-        $(`#${EXTENSION_NAME}_settings .inline-drawer-toggle`).on('click', function() {
-            const drawer = $(this).closest('.inline-drawer');
-            const content = drawer.find('.inline-drawer-content');
-            
-            if (content.is(':visible')) {
-                content.hide();
-                drawer.removeClass('open');
-            } else {
-                content.show();
-                drawer.addClass('open');
-            }
-        });
-        
-        // Show the drawer content by default
-        $(`#${EXTENSION_NAME}_settings .inline-drawer-content`).show();
-        $(`#${EXTENSION_NAME}_settings .inline-drawer`).addClass('open');
-        
         // Set up plot manager and character arc manager event listeners
         this.plotManager.initEventListeners();
         this.characterArcManager.initEventListeners();
@@ -640,19 +622,49 @@ function loadSettings() {
 function setupListeners() {
     console.log(`[${EXTENSION_NAME}] Setting up event listeners...`);
     
+    // Try multiple approaches to find the event system
     let eventSourceFound = false;
     
-    // Try to find eventSource in different contexts
+    // Approach 1: Direct eventSource
     if (typeof eventSource !== 'undefined') {
         console.log(`[${EXTENSION_NAME}] Using global eventSource`);
         registerEvents(eventSource);
         eventSourceFound = true;
-    } else if (typeof window.eventSource !== 'undefined') {
-        console.log(`[${EXTENSION_NAME}] Using SillyTavern context eventSource`);
+    } 
+    // Approach 2: Window eventSource
+    else if (typeof window.eventSource !== 'undefined') {
+        console.log(`[${EXTENSION_NAME}] Using window.eventSource`);
         registerEvents(window.eventSource);
         eventSourceFound = true;
-        console.log(`[${EXTENSION_NAME}] Event listeners set up using SillyTavern context`);
-    } else {
+    }
+    // Approach 3: SillyTavern context
+    else if (typeof window.SillyTavern !== 'undefined' && typeof window.SillyTavern.getContext === 'function') {
+        try {
+            const context = window.SillyTavern.getContext();
+            if (context && context.eventSource) {
+                console.log(`[${EXTENSION_NAME}] Using SillyTavern context eventSource`);
+                registerEvents(context.eventSource);
+                eventSourceFound = true;
+            }
+        } catch (error) {
+            console.warn(`[${EXTENSION_NAME}] Error getting SillyTavern context:`, error);
+        }
+    }
+    // Approach 4: Look for event_types
+    else if (typeof event_types !== 'undefined' && typeof jQuery !== 'undefined') {
+        console.log(`[${EXTENSION_NAME}] Using jQuery events with event_types`);
+        // Set up our own event handlers using jQuery
+        $(document).on('generate', function(e, data) {
+            handleGenerateEvent(data);
+        });
+        $(document).on('character_selected', function(e, data) {
+            handleCharacterSelectedEvent(data);
+        });
+        eventSourceFound = true;
+    }
+    
+    // If we couldn't find an event source, try again after a delay
+    if (!eventSourceFound) {
         console.warn(`[${EXTENSION_NAME}] eventSource not found, will try again later`);
         
         // Try to find it after a short delay
@@ -663,13 +675,62 @@ function setupListeners() {
             } else if (typeof window.eventSource !== 'undefined') {
                 console.log(`[${EXTENSION_NAME}] Found window.eventSource after delay`);
                 registerEvents(window.eventSource);
+            } else if (typeof window.SillyTavern !== 'undefined' && typeof window.SillyTavern.getContext === 'function') {
+                try {
+                    const context = window.SillyTavern.getContext();
+                    if (context && context.eventSource) {
+                        console.log(`[${EXTENSION_NAME}] Found SillyTavern context eventSource after delay`);
+                        registerEvents(context.eventSource);
+                    }
+                } catch (error) {
+                    console.warn(`[${EXTENSION_NAME}] Error getting SillyTavern context after delay:`, error);
+                }
             } else {
                 console.error(`[${EXTENSION_NAME}] Could not find eventSource, some features may not work`);
+                // As a last resort, set up our own event listeners using jQuery
+                console.log(`[${EXTENSION_NAME}] Setting up fallback jQuery event listeners`);
+                $(document).on('generate', function(e, data) {
+                    handleGenerateEvent(data);
+                });
+                $(document).on('character_selected', function(e, data) {
+                    handleCharacterSelectedEvent(data);
+                });
             }
-        }, 2000);
+        }, 5000); // Longer delay to ensure SillyTavern is fully loaded
     }
     
     return eventSourceFound;
+}
+
+// Handle generate event
+function handleGenerateEvent(data) {
+    if (!extension_settings[EXTENSION_NAME]?.enabled) {
+        return;
+    }
+    
+    try {
+        const extension = new DeepPlottingExtension();
+        
+        if (extension_settings[EXTENSION_NAME].autoInject && data.prompt) {
+            data.prompt = extension.injectPlotContent(data.prompt);
+        }
+    } catch (error) {
+        console.error(`[${EXTENSION_NAME}] Error in generate event handler:`, error);
+    }
+}
+
+// Handle character selected event
+function handleCharacterSelectedEvent(data) {
+    if (!extension_settings[EXTENSION_NAME]?.enabled) {
+        return;
+    }
+    
+    try {
+        const extension = new DeepPlottingExtension();
+        extension.characterArcManager.onCharacterSelected(data);
+    } catch (error) {
+        console.error(`[${EXTENSION_NAME}] Error in character_selected event handler:`, error);
+    }
 }
 
 // Register event handlers with the event source
@@ -679,43 +740,30 @@ function registerEvents(source) {
         return;
     }
     
-    // Listen for prompt generation to inject our plot content
-    source.on('generate', (data) => {
-        if (!extension_settings[EXTENSION_NAME]?.enabled) {
-            return;
-        }
-        
-        try {
-            const extension = new DeepPlottingExtension();
-            
-            if (extension_settings[EXTENSION_NAME].autoInject && data.prompt) {
-                data.prompt = extension.injectPlotContent(data.prompt);
+    // Try different event registration approaches
+    if (typeof source.on === 'function') {
+        // Standard event registration
+        source.on('generate', handleGenerateEvent);
+        source.on('character_selected', handleCharacterSelectedEvent);
+        source.on('settings_updated', (data) => {
+            if (data?.extension === EXTENSION_NAME) {
+                console.log(`[${EXTENSION_NAME}] Settings updated`);
             }
-        } catch (error) {
-            console.error(`[${EXTENSION_NAME}] Error in generate event handler:`, error);
-        }
-    });
-    
-    // Listen for character changes to update character arcs
-    source.on('character_selected', (data) => {
-        if (!extension_settings[EXTENSION_NAME]?.enabled) {
-            return;
-        }
-        
-        try {
-            const extension = new DeepPlottingExtension();
-            extension.characterArcManager.onCharacterSelected(data);
-        } catch (error) {
-            console.error(`[${EXTENSION_NAME}] Error in character_selected event handler:`, error);
-        }
-    });
-    
-    // Listen for settings updates
-    source.on('settings_updated', (data) => {
-        if (data?.extension === EXTENSION_NAME) {
-            console.log(`[${EXTENSION_NAME}] Settings updated`);
-        }
-    });
+        });
+        console.log(`[${EXTENSION_NAME}] Events registered successfully using .on()`);
+    } else if (typeof source.addEventListener === 'function') {
+        // DOM-style event registration
+        source.addEventListener('generate', (e) => handleGenerateEvent(e.detail));
+        source.addEventListener('character_selected', (e) => handleCharacterSelectedEvent(e.detail));
+        source.addEventListener('settings_updated', (e) => {
+            if (e.detail?.extension === EXTENSION_NAME) {
+                console.log(`[${EXTENSION_NAME}] Settings updated`);
+            }
+        });
+        console.log(`[${EXTENSION_NAME}] Events registered successfully using .addEventListener()`);
+    } else {
+        console.error(`[${EXTENSION_NAME}] Event source does not have a supported event registration method`);
+    }
 }
 
 // Initialize the extension
@@ -849,7 +897,41 @@ function createUI() {
         $('.extension_settings').hide();
         // Show our settings
         $(`#${EXTENSION_NAME}_settings`).show();
+        
+        // Make sure the drawer is open by default
+        const drawer = $(`#${EXTENSION_NAME}_settings .inline-drawer`);
+        const content = drawer.find('.inline-drawer-content');
+        if (!content.is(':visible')) {
+            content.show();
+            drawer.addClass('open');
+            drawer.find('.inline-drawer-icon')
+                .removeClass('fa-circle-chevron-right')
+                .addClass('fa-circle-chevron-down');
+        }
     });
+    
+    // Set up drawer toggle functionality
+    $(`#${EXTENSION_NAME}_settings .inline-drawer-toggle`).on('click', function() {
+        const drawer = $(this).closest('.inline-drawer');
+        const content = drawer.find('.inline-drawer-content');
+        const icon = drawer.find('.inline-drawer-icon');
+        
+        if (content.is(':visible')) {
+            content.hide();
+            drawer.removeClass('open');
+            icon.removeClass('fa-circle-chevron-down')
+                .addClass('fa-circle-chevron-right');
+        } else {
+            content.show();
+            drawer.addClass('open');
+            icon.removeClass('fa-circle-chevron-right')
+                .addClass('fa-circle-chevron-down');
+        }
+    });
+    
+    // Show the drawer content by default
+    $(`#${EXTENSION_NAME}_settings .inline-drawer-content`).show();
+    $(`#${EXTENSION_NAME}_settings .inline-drawer`).addClass('open');
     
     // Set up event listeners for the UI
     extension.initEventListeners();
@@ -867,7 +949,24 @@ function createUI() {
 
 // Wait for jQuery and SillyTavern to be ready
 $(document).ready(function() {
-    // Wait for SillyTavern to initialize
+    console.log(`[${EXTENSION_NAME}] Document ready, waiting for SillyTavern to initialize...`);
+    
+    // Multiple approaches to detect when SillyTavern is ready
+    
+    // Approach 1: Check for app_ready event
+    if (typeof window.eventSource !== 'undefined' || typeof eventSource !== 'undefined') {
+        const source = window.eventSource || eventSource;
+        if (source && typeof source.on === 'function') {
+            console.log(`[${EXTENSION_NAME}] Listening for app_ready event...`);
+            source.on('app_ready', () => {
+                console.log(`[${EXTENSION_NAME}] app_ready event received, initializing...`);
+                initializeExtension();
+            });
+            return; // Exit if we've set up the event listener
+        }
+    }
+    
+    // Approach 2: Wait for key UI elements
     const maxAttempts = 10;
     let attempts = 0;
     
@@ -875,7 +974,8 @@ $(document).ready(function() {
         attempts++;
         
         if (attempts > maxAttempts) {
-            console.error(`[${EXTENSION_NAME}] Maximum initialization attempts reached, giving up`);
+            console.error(`[${EXTENSION_NAME}] Maximum initialization attempts reached, trying anyway...`);
+            initializeExtension();
             return;
         }
         
@@ -886,19 +986,21 @@ $(document).ready(function() {
         const extensionsSettings = $('#extensions_settings').length > 0 || 
                                   $('#extensions_settings2').length > 0 || 
                                   $('#extensions-settings').length > 0;
+        const chatInterface = $('#chat').length > 0 || $('#chat_window').length > 0;
         
-        if (extensionsMenu && extensionsSettings) {
+        if (extensionsMenu && extensionsSettings && chatInterface) {
             console.log(`[${EXTENSION_NAME}] SillyTavern UI detected, initializing extension...`);
             initializeExtension();
         } else {
             console.log(`[${EXTENSION_NAME}] SillyTavern UI not ready yet, waiting...`);
-            setTimeout(tryInitialize, 1000);
+            // Increase delay with each attempt to give more time
+            setTimeout(tryInitialize, 1000 + (attempts * 500));
         }
     }
     
     // Start initialization after a short delay
     setTimeout(function() {
-        console.log(`[${EXTENSION_NAME}] Timeout elapsed, initializing extension...`);
+        console.log(`[${EXTENSION_NAME}] Initial delay elapsed, checking if SillyTavern is ready...`);
         tryInitialize();
-    }, 3000);
+    }, 2000);
 });
