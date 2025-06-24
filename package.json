@@ -17,10 +17,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/YOUR_GITHUB_USERNAME/st-deep-plotting.git"
+    "url": "https://github.com/ldc861117/st-deep-plotting.git"
   },
   "bugs": {
-    "url": "https://github.com/YOUR_GITHUB_USERNAME/st-deep-plotting/issues"
+    "url": "https://github.com/ldc861117/st-deep-plotting/issues"
   },
-  "homepage": "https://github.com/YOUR_GITHUB_USERNAME/st-deep-plotting"
+  "homepage": "https://github.com/ldc861117/st-deep-plotting"
 }
