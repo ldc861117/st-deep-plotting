@@ -1,31 +1,32 @@
-// Minimal test extension
-console.log("Deep Plotting test extension loading");
+// [BACKUP] Minimal test extension - DO NOT USE
+console.log("WARNING: Using Deep Plotting test extension instead of main index.js!");
 
 // Basic approach using plain DOM manipulation to avoid jQuery issues
 window.addEventListener('DOMContentLoaded', function() {
-    console.log("DOM content loaded");
+    console.log("[test.js] DOM content loaded");
 
     try {
-        console.log("Trying to find extensions_settings2");
+        console.log("[test.js] Trying to find extensions_settings2");
         // Try to find the extensions settings container
         const container = document.getElementById('extensions_settings2');
 
         if (container) {
-            console.log("Found container, adding test content");
+            console.log("[test.js] Found container, adding test content");
             // Add simple content directly to the DOM
             const div = document.createElement('div');
             div.innerHTML = `
-                <h3>Deep Plotting Test</h3>
-                <p>This is a test extension. If you see this, the extension system is working.</p>
+                <h3>Deep Plotting Test (BACKUP FILE)</h3>
+                <p>This is a test extension. If you see this, the extension system is using test.js instead of index.js!</p>
+                <p style="color: red;">Please check manifest.json to ensure it points to index.js, not test.js!</p>
             `;
             container.appendChild(div);
-            console.log("Content added successfully");
+            console.log("[test.js] Content added successfully");
         } else {
-            console.error("Could not find extensions_settings2 container");
+            console.error("[test.js] Could not find extensions_settings2 container");
         }
     } catch (error) {
-        console.error("Error in test extension:", error);
+        console.error("[test.js] Error in test extension:", error);
     }
 
-    console.log("Deep Plotting test extension loaded");
+    console.log("[test.js] Deep Plotting test extension loaded");
 });

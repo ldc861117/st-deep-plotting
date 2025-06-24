@@ -3,6 +3,9 @@
 // Extension name and settings key
 const extensionName = "deep_plotting";
 
+// Add debugging
+console.log(`[${extensionName}] Extension script loading...`);
+
 // Default settings for the extension
 const defaultSettings = {
     enabled: true,
@@ -176,11 +179,91 @@ class CharacterArcProgress {
 
 // Initialize extension settings
 function loadSettings() {
-    if (Object.keys(extension_settings).includes(extensionName)) {
-        Object.assign(defaultSettings, extension_settings[extensionName]);
+    console.log(`[${extensionName}] Loading settings...`);
+    try {
+        // Make sure extension_settings exists
+        if (!window.extension_settings) {
+            console.error(`[${extensionName}] extension_settings is undefined!`);
+            return false;
+        }
+        
+        if (Object.keys(extension_settings).includes(extensionName)) {
+            console.log(`[${extensionName}] Found existing settings`);
+            Object.assign(defaultSettings, extension_settings[extensionName]);
+        } else {
+            console.log(`[${extensionName}] No existing settings found, using defaults`);
+        }
+        extension_settings[extensionName] = defaultSettings;
+        saveSettingsDebounced();
+        console.log(`[${extensionName}] Settings loaded successfully`);
+        return true;
+    } catch (err) {
+        console.error(`[${extensionName}] Error loading settings:`, err);
+        return false;
     }
-    extension_settings[extensionName] = defaultSettings;
-    saveSettingsDebounced();
+}
+
+// Using a modern approach to wait for ST to be ready
+function waitForSillyTavern() {
+    console.log(`[${extensionName}] Waiting for SillyTavern to be ready...`);
+    
+    const MAX_ATTEMPTS = 30;
+    const RETRY_DELAY = 1000;
+    let attempts = 0;
+    
+    // Check if ST's extension system is ready
+    function checkIfReady() {
+        attempts++;
+        console.log(`[${extensionName}] Check attempt ${attempts}/${MAX_ATTEMPTS}...`);
+        
+        // If we've exhausted our attempts, give up
+        if (attempts > MAX_ATTEMPTS) {
+            console.error(`[${extensionName}] Failed to initialize after ${MAX_ATTEMPTS} attempts`);
+            return;
+        }
+        
+        // Check for all required ST global objects
+        const isSillyTavernReady = 
+            typeof window.extension_settings !== 'undefined' && 
+            typeof window.saveSettingsDebounced === 'function' && 
+            typeof window.eventSource !== 'undefined' &&
+            typeof window.event_types !== 'undefined';
+        
+        if (isSillyTavernReady) {
+            console.log(`[${extensionName}] SillyTavern is ready, initializing extension...`);
+            initializeExtension();
+        } else {
+            console.log(`[${extensionName}] SillyTavern not ready yet, retrying in ${RETRY_DELAY}ms...`);
+            setTimeout(checkIfReady, RETRY_DELAY);
+        }
+    }
+    
+    // Start checking
+    checkIfReady();
+}
+
+// The actual initialization function
+function initializeExtension() {
+    try {
+        if (!loadSettings()) {
+            console.error(`[${extensionName}] Failed to load settings, aborting initialization`);
+            return;
+        }
+        
+        console.log(`[${extensionName}] Creating extension instance...`);
+        const extension = new DeepPlottingExtension();
+        
+        console.log(`[${extensionName}] Creating UI...`);
+        extension.createUI();
+
+        // Register event handlers
+        console.log(`[${extensionName}] Registering event handlers...`);
+        eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
+
+        console.log(`[${extensionName}] Extension loaded successfully!`);
+    } catch (error) {
+        console.error(`[${extensionName}] Error initializing extension:`, error);
+    }
 }
 
 // Simple PlotManager
@@ -610,33 +693,8 @@ function onChatChanged() {
     }
 }
 
-// Initialize extension
-jQuery(async () => {
-    try {
-        console.log("Deep Plotting extension loading...");
-        if (!window.getContext) {
-            console.log("SillyTavern API not available yet, waiting...");
-            // Wait a bit and try again if SillyTavern API isn't ready
-            setTimeout(() => {
-                jQuery(async () => {
-                    console.log("Retrying Deep Plotting extension initialization...");
-                    loadSettings();
-                    const extension = new DeepPlottingExtension();
-                    extension.createUI();
-                    eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
-                    console.log("Deep Plotting extension loaded successfully on retry");
-                });
-            }, 2000);
-            return;
-        }
-
-        loadSettings();
-        const extension = new DeepPlottingExtension();
-        extension.createUI();
-        eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
-        console.log("Deep Plotting extension loaded successfully");
-    } catch (error) {
-        console.error("Error initializing Deep Plotting extension:", error);
-        console.error(error.stack);
-    }
+// Initialize extension - start the waiting process when document is ready
+$(document).ready(function() {
+    console.log(`[${extensionName}] Document ready, starting initialization...`);
+    waitForSillyTavern();
 });
