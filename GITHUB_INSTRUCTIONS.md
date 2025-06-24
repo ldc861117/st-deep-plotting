@@ -35,8 +35,23 @@ Your extension is now ready to be installed from GitHub using SillyTavern's exte
 ## Installing Your Extension in SillyTavern
 
 1. In SillyTavern, go to Extensions -> Install Extensions
-2. Enter your GitHub repository URL (https://github.com/YOUR_GITHUB_USERNAME/st-deep-plotting)
+2. Enter GitHub repository URL (https://github.com/ldc861117/st-deep-plotting)
 3. Click Install
 4. Reload the page when prompted
 
 Your Deep Plotting extension should now be installed and ready to use! 
+
+## Updating Your Extension
+
+The extension now has support for updates. Here's how it works:
+
+1. When you publish a new version, update the version number in both manifest.json and index.js (the currentVersion variable)
+2. Push these changes to your GitHub repository
+3. Users will see an update button in their SillyTavern extension panel for Deep Plotting
+4. When clicked, it will automatically download the new version
+5. Users can also type /deep-plotting-update in chat to check for updates manually
+
+To test the update button:
+1. Change the version number in manifest.json to "1.0.1" 
+2. Push the changes to GitHub
+3. In your local SillyTavern, you should see the update button appear 
