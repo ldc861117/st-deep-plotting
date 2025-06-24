@@ -1,0 +1,26 @@
+{
+  "name": "st-deep-plotting",
+  "version": "1.0.0",
+  "description": "A SillyTavern extension for enhanced storytelling through structured plot management",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "sillytavern",
+    "extension",
+    "plot",
+    "storytelling",
+    "narrative"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_GITHUB_USERNAME/st-deep-plotting.git"
+  },
+  "bugs": {
+    "url": "https://github.com/YOUR_GITHUB_USERNAME/st-deep-plotting/issues"
+  },
+  "homepage": "https://github.com/YOUR_GITHUB_USERNAME/st-deep-plotting"
+}
