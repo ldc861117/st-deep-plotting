@@ -1,10 +1,4 @@
-// Import dependencies using window scope (SillyTavern's approach)
-// These are global variables that SillyTavern makes available
-// No need for explicit imports in extensions system
-
-import * as templates from "./templates.js";
-import { PlotManager } from "./ui/PlotManager.js";
-import { CharacterArcManager } from "./ui/CharacterArcManager.js";
+// Deep Plotting Extension for SillyTavern
 
 // Extension name and settings key
 const extensionName = "deep_plotting";
@@ -22,25 +16,120 @@ const defaultSettings = {
     completedArcStages: {}, // format: "{arcIndex}-{stageIndex}": true/false
 };
 
-// Version check function for extension updates
-async function checkVersion() {
-    try {
-        // Fetch the latest manifest
-        const response = await fetch('https://github.com/ldc861117/st-deep-plotting/raw/main/manifest.json');
-        if (response.ok) {
-            const manifest = await response.json();
-            const latestVersion = manifest.version;
-            const currentVersion = '1.0.0'; // Should match the version in manifest.json
-            
-            console.log(`Deep Plotting: Current version: ${currentVersion}, Latest version: ${latestVersion}`);
-            return { hasUpdate: currentVersion !== latestVersion, version: latestVersion };
-        }
-        return { hasUpdate: false, version: null };
-    } catch (err) {
-        console.error("Failed to check Deep Plotting version:", err);
-        return { hasUpdate: false, version: null };
+// Basic templates directly in this file for simplicity
+const plotTemplates = {
+    threeAct: {
+        name: "Three-Act Structure",
+        description: "Classic three-act structure for storytelling",
+        acts: [
+            {
+                name: "Act 1: Setup",
+                description: "Introduce the characters and establish conflict",
+                stages: [
+                    { name: "Introduction", description: "Introduce main characters" },
+                    { name: "Inciting Incident", description: "Event starts the story" },
+                    { name: "First Plot Point", description: "Move to Act 2" }
+                ]
+            },
+            {
+                name: "Act 2: Confrontation",
+                description: "Rising action and complications",
+                stages: [
+                    { name: "Rising Action", description: "Obstacles increase" },
+                    { name: "Midpoint", description: "Major twist or revelation" },
+                    { name: "Low Point", description: "All seems lost" }
+                ]
+            },
+            {
+                name: "Act 3: Resolution",
+                description: "Climax and resolution",
+                stages: [
+                    { name: "Climax", description: "Final confrontation" },
+                    { name: "Resolution", description: "Wrap up loose ends" },
+                    { name: "New Normal", description: "Show changed world" }
+                ]
+            }
+        ]
+    },
+    heroJourney: {
+        name: "Hero's Journey",
+        description: "Campbell's monomyth structure",
+        acts: [
+            {
+                name: "Departure",
+                description: "The hero leaves the ordinary world",
+                stages: [
+                    { name: "Ordinary World", description: "The hero's normal life" },
+                    { name: "Call to Adventure", description: "The hero is presented with a challenge" },
+                    { name: "Refusal of the Call", description: "The hero initially refuses the adventure" },
+                    { name: "Meeting the Mentor", description: "The hero meets a guide figure" },
+                    { name: "Crossing the Threshold", description: "The hero commits to the adventure" }
+                ]
+            },
+            {
+                name: "Initiation",
+                description: "The hero faces trials and transforms",
+                stages: [
+                    { name: "Tests, Allies, Enemies", description: "The hero faces challenges and makes friends/foes" },
+                    { name: "Approach to the Inmost Cave", description: "The hero prepares for the central challenge" },
+                    { name: "Ordeal", description: "The hero faces their greatest fear" },
+                    { name: "Reward", description: "The hero gains something important" }
+                ]
+            },
+            {
+                name: "Return",
+                description: "The hero returns with new knowledge",
+                stages: [
+                    { name: "The Road Back", description: "The hero begins the return journey" },
+                    { name: "Resurrection", description: "The hero faces a final test" },
+                    { name: "Return with the Elixir", description: "The hero brings back something to benefit others" }
+                ]
+            }
+        ]
     }
-}
+};
+
+const characterArcTemplates = {
+    redemption: {
+        name: "Redemption Arc",
+        description: "Character journey from flawed to redeemed",
+        stages: [
+            { name: "Establish Flaw", description: "Establish the character's major flaw" },
+            { name: "Consequences", description: "Character experiences consequences of their flaw" },
+            { name: "Realization", description: "Character realizes they need to change" },
+            { name: "Struggle", description: "Character struggles to overcome their flaw" },
+            { name: "Sacrifice", description: "Character makes a sacrifice demonstrating change" },
+            { name: "Redemption", description: "Character is redeemed or forgiven" },
+            { name: "New Path", description: "Character begins a new path" }
+        ]
+    },
+    corruption: {
+        name: "Corruption Arc",
+        description: "Character journey from good to corrupted",
+        stages: [
+            { name: "Establish Virtue", description: "Establish the character's initial good nature" },
+            { name: "Temptation", description: "Character is tempted by power/shortcuts" },
+            { name: "First Compromise", description: "Character makes their first moral compromise" },
+            { name: "Rationalization", description: "Character justifies increasingly darker actions" },
+            { name: "Point of No Return", description: "Character crosses a line they can't uncross" },
+            { name: "Embrace Darkness", description: "Character fully embraces their corrupted nature" },
+            { name: "Corrupted Identity", description: "Character establishes new, darker identity" }
+        ]
+    },
+    coming_of_age: {
+        name: "Coming of Age",
+        description: "Character journey from innocence to maturity",
+        stages: [
+            { name: "Innocence", description: "Character begins with naive worldview" },
+            { name: "Call to Growth", description: "Character faces challenge requiring growth" },
+            { name: "Disillusionment", description: "Character's innocence is challenged" },
+            { name: "Confusion", description: "Character struggles with changing identity" },
+            { name: "Guidance", description: "Character receives guidance or mentorship" },
+            { name: "Decision", description: "Character makes a defining choice" },
+            { name: "Maturity", description: "Character emerges with newfound maturity" }
+        ]
+    }
+};
 
 // Create plot progress tracker
 class PlotProgress {
@@ -94,11 +183,233 @@ function loadSettings() {
     saveSettingsDebounced();
 }
 
+// Simple PlotManager
+class PlotManager {
+    constructor(extension) {
+        this.extension = extension;
+        this.selectedPlotTemplate = null;
+    }
+
+    render() {
+        let html = `
+            <h3>Plot Structure</h3>
+            <div class="plot-header">
+                <select id="plot-template-select" class="text_pole">
+                    <option value="">Select a plot structure...</option>
+                    ${Object.keys(plotTemplates).map(key =>
+                        `<option value="${key}">${plotTemplates[key].name}</option>`
+                    ).join('')}
+                </select>
+                <button id="load-plot-template" class="menu_button">Load</button>
+            </div>
+        `;
+
+        const activePlot = this.extension.settings.activePlot;
+        if (activePlot) {
+            html += `
+                <div id="plot-structure">
+                    <h4>${activePlot.name}</h4>
+                    <p>${activePlot.description}</p>
+                    <div class="plot-acts">
+            `;
+
+            activePlot.acts.forEach((act, actIndex) => {
+                html += `
+                    <div class="plot-act">
+                        <h5>${act.name}</h5>
+                        <p>${act.description}</p>
+                        <div class="plot-stages">
+                `;
+
+                act.stages.forEach((stage, stageIndex) => {
+                    const isCompleted = this.extension.plotProgress.isStageCompleted(actIndex, stageIndex);
+                    html += `
+                        <div class="plot-point" data-act="${actIndex}" data-stage="${stageIndex}">
+                            <div>
+                                <input type="checkbox" id="plot-stage-${actIndex}-${stageIndex}"
+                                    class="plot-stage-checkbox" ${isCompleted ? 'checked' : ''}
+                                    data-act="${actIndex}" data-stage="${stageIndex}">
+                                <label for="plot-stage-${actIndex}-${stageIndex}">${stage.name}</label>
+                            </div>
+                            <div class="plot-point-controls">
+                                <button class="use-plot-point-btn menu_button" data-act="${actIndex}" data-stage="${stageIndex}">
+                                    Use
+                                </button>
+                                <button class="view-plot-point-btn menu_button" data-act="${actIndex}" data-stage="${stageIndex}">
+                                    Info
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div></div>`;
+            });
+
+            html += `</div></div>`;
+        }
+
+        return html;
+    }
+
+    initEventListeners() {
+        document.getElementById('load-plot-template').addEventListener('click', () => {
+            const select = document.getElementById('plot-template-select');
+            if (select.value) {
+                this.extension.loadPlotTemplate(select.value);
+                this.updateUI();
+            }
+        });
+
+        document.addEventListener('click', (event) => {
+            if (event.target.classList.contains('plot-stage-checkbox')) {
+                const actIndex = parseInt(event.target.getAttribute('data-act'));
+                const stageIndex = parseInt(event.target.getAttribute('data-stage'));
+                this.extension.plotProgress.setStageCompleted(actIndex, stageIndex, event.target.checked);
+            } else if (event.target.classList.contains('use-plot-point-btn')) {
+                const actIndex = parseInt(event.target.getAttribute('data-act'));
+                const stageIndex = parseInt(event.target.getAttribute('data-stage'));
+                this.extension.injectStageIntoPrompt(actIndex, stageIndex);
+                toastr.success(`Plot point added to context`);
+            } else if (event.target.classList.contains('view-plot-point-btn')) {
+                const actIndex = parseInt(event.target.getAttribute('data-act'));
+                const stageIndex = parseInt(event.target.getAttribute('data-stage'));
+
+                if (this.extension.settings.activePlot &&
+                    this.extension.settings.activePlot.acts[actIndex] &&
+                    this.extension.settings.activePlot.acts[actIndex].stages[stageIndex]) {
+
+                    const stage = this.extension.settings.activePlot.acts[actIndex].stages[stageIndex];
+                    callPopup(`<h3>${stage.name}</h3><p>${stage.description}</p>`, 'text');
+                }
+            }
+        });
+    }
+
+    updateUI() {
+        const container = document.getElementById('plot-manager-container');
+        if (container) {
+            container.innerHTML = this.render();
+            this.initEventListeners();
+        }
+    }
+}
+
+// Simple CharacterArcManager
+class CharacterArcManager {
+    constructor(extension) {
+        this.extension = extension;
+    }
+
+    render() {
+        let html = `
+            <h3>Character Arcs</h3>
+            <div class="plot-header">
+                <select id="character-arc-template" class="text_pole">
+                    <option value="">Select an arc type...</option>
+                    ${Object.keys(characterArcTemplates).map(key =>
+                        `<option value="${key}">${characterArcTemplates[key].name}</option>`
+                    ).join('')}
+                </select>
+                <input type="text" id="character-arc-name" class="text_pole"
+                    placeholder="Character name">
+                <button id="add-character-arc" class="menu_button">Add</button>
+            </div>
+        `;
+
+        const arcs = this.extension.settings.characterArcs || [];
+        if (arcs.length > 0) {
+            html += `<div id="character-arcs-list">`;
+
+            arcs.forEach((arc, arcIndex) => {
+                html += `
+                    <div class="character-arc">
+                        <h4>${arc.character}: ${arc.arcType}</h4>
+                        <p>${arc.description || ""}</p>
+                        <div class="plot-stages">
+                `;
+
+                arc.stages.forEach((stage, stageIndex) => {
+                    const isCompleted = this.extension.characterArcProgress.isStageCompleted(arcIndex, stageIndex);
+                    html += `
+                        <div class="plot-point" data-arc="${arcIndex}" data-stage="${stageIndex}">
+                            <div>
+                                <input type="checkbox" id="arc-stage-${arcIndex}-${stageIndex}"
+                                    class="arc-stage-checkbox" ${isCompleted ? 'checked' : ''}
+                                    data-arc="${arcIndex}" data-stage="${stageIndex}">
+                                <label for="arc-stage-${arcIndex}-${stageIndex}">${stage.name}</label>
+                            </div>
+                            <div class="plot-point-controls">
+                                <button class="use-arc-point-btn menu_button" data-arc="${arcIndex}" data-stage="${stageIndex}">
+                                    Use
+                                </button>
+                                <button class="view-arc-point-btn menu_button" data-arc="${arcIndex}" data-stage="${stageIndex}">
+                                    Info
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div></div>`;
+            });
+
+            html += `</div>`;
+        }
+
+        return html;
+    }
+
+    initEventListeners() {
+        document.getElementById('add-character-arc').addEventListener('click', () => {
+            const template = document.getElementById('character-arc-template').value;
+            const characterName = document.getElementById('character-arc-name').value.trim();
+
+            if (template && characterName) {
+                this.extension.createCharacterArc(template, characterName);
+                this.updateUI();
+            } else {
+                toastr.warning('Please select an arc type and enter a character name');
+            }
+        });
+
+        document.addEventListener('click', (event) => {
+            if (event.target.classList.contains('arc-stage-checkbox')) {
+                const arcIndex = parseInt(event.target.getAttribute('data-arc'));
+                const stageIndex = parseInt(event.target.getAttribute('data-stage'));
+                this.extension.characterArcProgress.setStageCompleted(arcIndex, stageIndex, event.target.checked);
+            } else if (event.target.classList.contains('use-arc-point-btn')) {
+                const arcIndex = parseInt(event.target.getAttribute('data-arc'));
+                const stageIndex = parseInt(event.target.getAttribute('data-stage'));
+                this.extension.injectArcStageIntoPrompt(arcIndex, stageIndex);
+                toastr.success(`Character arc point added to context`);
+            } else if (event.target.classList.contains('view-arc-point-btn')) {
+                const arcIndex = parseInt(event.target.getAttribute('data-arc'));
+                const stageIndex = parseInt(event.target.getAttribute('data-stage'));
+
+                if (this.extension.settings.characterArcs[arcIndex] &&
+                    this.extension.settings.characterArcs[arcIndex].stages[stageIndex]) {
+
+                    const stage = this.extension.settings.characterArcs[arcIndex].stages[stageIndex];
+                    callPopup(`<h3>${stage.name}</h3><p>${stage.description}</p>`, 'text');
+                }
+            }
+        });
+    }
+
+    updateUI() {
+        const container = document.getElementById('character-arc-container');
+        if (container) {
+            container.innerHTML = this.render();
+            this.initEventListeners();
+        }
+    }
+}
+
 // Main extension class
 class DeepPlottingExtension {
     constructor() {
         this.settings = extension_settings[extensionName];
-        this.templates = templates;
         this.plotManager = new PlotManager(this);
         this.characterArcManager = new CharacterArcManager(this);
         this.plotProgress = new PlotProgress(this.settings);
@@ -107,7 +418,7 @@ class DeepPlottingExtension {
 
     // Load a plot template
     loadPlotTemplate(templateKey) {
-        const template = this.templates.plotTemplates[templateKey];
+        const template = plotTemplates[templateKey];
         if (!template) return;
 
         // Create a copy of the template
@@ -121,7 +432,7 @@ class DeepPlottingExtension {
 
     // Create a new character arc
     createCharacterArc(templateKey, characterName) {
-        const template = this.templates.characterArcTemplates[templateKey];
+        const template = characterArcTemplates[templateKey];
         if (!template) return -1;
 
         // Create a copy of the template
@@ -242,54 +553,50 @@ class DeepPlottingExtension {
             </div>
         `;
 
-        jQuery('#extensions_settings2').append(html);
+        $('#extensions_settings2').append(html);
         this.initEventListeners();
     }
 
     // Initialize event listeners
     initEventListeners() {
-        try {
-            // Core settings listeners
-            jQuery('#deep_plotting_enabled').on('change', (e) => {
-                this.settings.enabled = !!jQuery(e.target).prop('checked');
-                saveSettingsDebounced();
-            });
+        // Core settings listeners
+        $('#deep_plotting_enabled').on('change', (e) => {
+            this.settings.enabled = !!$(e.target).prop('checked');
+            saveSettingsDebounced();
+        });
 
-            jQuery('#deep_plotting_auto_inject').on('change', (e) => {
-                this.settings.autoInject = !!jQuery(e.target).prop('checked');
-                saveSettingsDebounced();
-            });
+        $('#deep_plotting_auto_inject').on('change', (e) => {
+            this.settings.autoInject = !!$(e.target).prop('checked');
+            saveSettingsDebounced();
+        });
 
-            jQuery('input[name="deep_plotting_position"]').on('change', (e) => {
-                this.settings.plotPosition = jQuery(e.target).val();
-                saveSettingsDebounced();
-            });
+        $('input[name="deep_plotting_position"]').on('change', (e) => {
+            this.settings.plotPosition = $(e.target).val();
+            saveSettingsDebounced();
+        });
 
-            jQuery('#plot-notes').on('input', (e) => {
-                this.settings.plotNotes = jQuery(e.target).val();
-                saveSettingsDebounced();
-            });
+        $('#plot-notes').on('input', (e) => {
+            this.settings.plotNotes = $(e.target).val();
+            saveSettingsDebounced();
+        });
 
-            // Drawer toggle
-            jQuery('#deep_plotting_settings .inline-drawer-toggle').on('click', function() {
-                const $icon = jQuery(this).find('.inline-drawer-icon');
-                const $content = jQuery(this).next('.inline-drawer-content');
+        // Drawer toggle
+        $('#deep_plotting_settings .inline-drawer-toggle').on('click', function() {
+            const $icon = $(this).find('.inline-drawer-icon');
+            const $content = $(this).next('.inline-drawer-content');
 
-                if ($content.is(':visible')) {
-                    $content.slideUp(200);
-                    $icon.removeClass('down').addClass('right');
-                } else {
-                    $content.slideDown(200);
-                    $icon.removeClass('right').addClass('down');
-                }
-            });
+            if ($content.is(':visible')) {
+                $content.slideUp(200);
+                $icon.removeClass('down').addClass('right');
+            } else {
+                $content.slideDown(200);
+                $icon.removeClass('right').addClass('down');
+            }
+        });
 
-            // Initialize component event listeners
-            this.plotManager.initEventListeners();
-            this.characterArcManager.initEventListeners();
-        } catch (error) {
-            console.error("Error initializing Deep Plotting event listeners:", error);
-        }
+        // Initialize component event listeners
+        this.plotManager.initEventListeners();
+        this.characterArcManager.initEventListeners();
     }
 }
 
@@ -304,29 +611,32 @@ function onChatChanged() {
 }
 
 // Initialize extension
-$(document).ready(function() {
+jQuery(async () => {
     try {
         console.log("Deep Plotting extension loading...");
+        if (!window.getContext) {
+            console.log("SillyTavern API not available yet, waiting...");
+            // Wait a bit and try again if SillyTavern API isn't ready
+            setTimeout(() => {
+                jQuery(async () => {
+                    console.log("Retrying Deep Plotting extension initialization...");
+                    loadSettings();
+                    const extension = new DeepPlottingExtension();
+                    extension.createUI();
+                    eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
+                    console.log("Deep Plotting extension loaded successfully on retry");
+                });
+            }, 2000);
+            return;
+        }
+
         loadSettings();
         const extension = new DeepPlottingExtension();
         extension.createUI();
-
-        // Register event handlers - use a more compatible approach
         eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
-        
-        // Register version check for extension updates
-        registerSlashCommand('deep-plotting-update', async (_, value) => {
-            toastr.info('Checking for updates...', 'Deep Plotting');
-            const { hasUpdate, version } = await checkVersion();
-            if (hasUpdate) {
-                toastr.success(`Update available: ${version}. Use Extensions menu to update.`, 'Deep Plotting');
-            } else {
-                toastr.success('No updates available.', 'Deep Plotting');
-            }
-        });
-
-        console.log("Deep Plotting extension loaded successfully!");
+        console.log("Deep Plotting extension loaded successfully");
     } catch (error) {
-        console.error("Error loading Deep Plotting extension:", error);
+        console.error("Error initializing Deep Plotting extension:", error);
+        console.error(error.stack);
     }
 });
