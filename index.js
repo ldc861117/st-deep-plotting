@@ -1,7 +1,7 @@
-import { getContext, extension_settings, saveSettingsDebounced } from "../../extensions.js";
-import { eventSource, event_types } from "../../script.js";
-import { debounce } from "../../utils.js";
-import { debounce_timeout } from "../../constants.js";
+// Import dependencies using window scope (SillyTavern's approach)
+// These are global variables that SillyTavern makes available
+// No need for explicit imports in extensions system
+
 import * as templates from "./templates.js";
 import { PlotManager } from "./ui/PlotManager.js";
 import { CharacterArcManager } from "./ui/CharacterArcManager.js";
@@ -222,50 +222,54 @@ class DeepPlottingExtension {
             </div>
         `;
 
-        $('#extensions_settings2').append(html);
+        jQuery('#extensions_settings2').append(html);
         this.initEventListeners();
     }
 
     // Initialize event listeners
     initEventListeners() {
-        // Core settings listeners
-        $('#deep_plotting_enabled').on('change', (e) => {
-            this.settings.enabled = !!$(e.target).prop('checked');
-            saveSettingsDebounced();
-        });
+        try {
+            // Core settings listeners
+            jQuery('#deep_plotting_enabled').on('change', (e) => {
+                this.settings.enabled = !!jQuery(e.target).prop('checked');
+                saveSettingsDebounced();
+            });
 
-        $('#deep_plotting_auto_inject').on('change', (e) => {
-            this.settings.autoInject = !!$(e.target).prop('checked');
-            saveSettingsDebounced();
-        });
+            jQuery('#deep_plotting_auto_inject').on('change', (e) => {
+                this.settings.autoInject = !!jQuery(e.target).prop('checked');
+                saveSettingsDebounced();
+            });
 
-        $('input[name="deep_plotting_position"]').on('change', (e) => {
-            this.settings.plotPosition = $(e.target).val();
-            saveSettingsDebounced();
-        });
+            jQuery('input[name="deep_plotting_position"]').on('change', (e) => {
+                this.settings.plotPosition = jQuery(e.target).val();
+                saveSettingsDebounced();
+            });
 
-        $('#plot-notes').on('input', (e) => {
-            this.settings.plotNotes = $(e.target).val();
-            saveSettingsDebounced();
-        });
+            jQuery('#plot-notes').on('input', (e) => {
+                this.settings.plotNotes = jQuery(e.target).val();
+                saveSettingsDebounced();
+            });
 
-        // Drawer toggle
-        $('#deep_plotting_settings .inline-drawer-toggle').on('click', function() {
-            const $icon = $(this).find('.inline-drawer-icon');
-            const $content = $(this).next('.inline-drawer-content');
+            // Drawer toggle
+            jQuery('#deep_plotting_settings .inline-drawer-toggle').on('click', function() {
+                const $icon = jQuery(this).find('.inline-drawer-icon');
+                const $content = jQuery(this).next('.inline-drawer-content');
 
-            if ($content.is(':visible')) {
-                $content.slideUp(200);
-                $icon.removeClass('down').addClass('right');
-            } else {
-                $content.slideDown(200);
-                $icon.removeClass('right').addClass('down');
-            }
-        });
+                if ($content.is(':visible')) {
+                    $content.slideUp(200);
+                    $icon.removeClass('down').addClass('right');
+                } else {
+                    $content.slideDown(200);
+                    $icon.removeClass('right').addClass('down');
+                }
+            });
 
-        // Initialize component event listeners
-        this.plotManager.initEventListeners();
-        this.characterArcManager.initEventListeners();
+            // Initialize component event listeners
+            this.plotManager.initEventListeners();
+            this.characterArcManager.initEventListeners();
+        } catch (error) {
+            console.error("Error initializing Deep Plotting event listeners:", error);
+        }
     }
 }
 
@@ -280,11 +284,18 @@ function onChatChanged() {
 }
 
 // Initialize extension
-jQuery(async () => {
-    loadSettings();
-    const extension = new DeepPlottingExtension();
-    extension.createUI();
+$(document).ready(function() {
+    try {
+        console.log("Deep Plotting extension loading...");
+        loadSettings();
+        const extension = new DeepPlottingExtension();
+        extension.createUI();
 
-    // Register event handlers
-    eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
+        // Register event handlers - use a more compatible approach
+        eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
+
+        console.log("Deep Plotting extension loaded successfully!");
+    } catch (error) {
+        console.error("Error loading Deep Plotting extension:", error);
+    }
 });

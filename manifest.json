@@ -1,12 +1,12 @@
 {
-    "display_name": "Deep Plotting",
+    "display_name": "Deep Plotting (Test)",
     "loading_order": 10,
     "requires": [],
-    "optional": ["memory"],
-    "js": "index.js",
+    "optional": [],
+    "js": "test.js",
     "css": "style.css",
     "author": "User",
     "version": "1.0.0",
     "homePage": "https://github.com/ldc861117/st-deep-plotting",
-    "description": "An extension for managing deep plot structures, character arcs, and enhancing storytelling in SillyTavern."
+    "description": "A test extension for SillyTavern."
 }

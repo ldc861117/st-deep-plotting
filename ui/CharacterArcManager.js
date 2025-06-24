@@ -120,49 +120,53 @@ export class CharacterArcManager {
      * Initialize event listeners
      */
     initEventListeners() {
-        $('#character-arc-template-selector').on('change', (e) => {
-            const templateKey = $(e.target).val();
-            if (!templateKey) return;
+        try {
+            jQuery('#character-arc-template-selector').on('change', (e) => {
+                const templateKey = jQuery(e.target).val();
+                if (!templateKey) return;
 
-            // Show dialog to select character and create arc
-            this.showNewArcDialog(templateKey);
-        });
+                // Show dialog to select character and create arc
+                this.showNewArcDialog(templateKey);
+            });
 
-        $('#new-character-arc-btn').on('click', () => {
-            this.showNewArcDialog();
-        });
+            jQuery('#new-character-arc-btn').on('click', () => {
+                this.showNewArcDialog();
+            });
 
-        // Delegate events for dynamic elements
-        $('#character-arcs').on('change', '.arc-stage-checkbox', (e) => {
-            const arcIndex = $(e.target).data('arc');
-            const stageIndex = $(e.target).data('stage');
-            const isCompleted = $(e.target).prop('checked');
+            // Delegate events for dynamic elements
+            jQuery('#character-arcs').on('change', '.arc-stage-checkbox', (e) => {
+                const arcIndex = jQuery(e.target).data('arc');
+                const stageIndex = jQuery(e.target).data('stage');
+                const isCompleted = jQuery(e.target).prop('checked');
 
-            this.extension.characterArcProgress.setStageCompleted(arcIndex, stageIndex, isCompleted);
-            this.updateArcProgress(arcIndex);
-        });
+                this.extension.characterArcProgress.setStageCompleted(arcIndex, stageIndex, isCompleted);
+                this.updateArcProgress(arcIndex);
+            });
 
-        $('#character-arcs').on('click', '.character-arc-edit', (e) => {
-            const arcIndex = $(e.target).closest('.character-arc-edit').data('arc');
-            this.showEditArcDialog(arcIndex);
-        });
+            jQuery('#character-arcs').on('click', '.character-arc-edit', (e) => {
+                const arcIndex = jQuery(e.target).closest('.character-arc-edit').data('arc');
+                this.showEditArcDialog(arcIndex);
+            });
 
-        $('#character-arcs').on('click', '.character-arc-delete', (e) => {
-            const arcIndex = $(e.target).closest('.character-arc-delete').data('arc');
-            this.deleteCharacterArc(arcIndex);
-        });
+            jQuery('#character-arcs').on('click', '.character-arc-delete', (e) => {
+                const arcIndex = jQuery(e.target).closest('.character-arc-delete').data('arc');
+                this.deleteCharacterArc(arcIndex);
+            });
 
-        $('#character-arcs').on('click', '.arc-stage-edit', (e) => {
-            const arcIndex = $(e.target).closest('.arc-stage-edit').data('arc');
-            const stageIndex = $(e.target).closest('.arc-stage-edit').data('stage');
-            this.showEditStageDialog(arcIndex, stageIndex);
-        });
+            jQuery('#character-arcs').on('click', '.arc-stage-edit', (e) => {
+                const arcIndex = jQuery(e.target).closest('.arc-stage-edit').data('arc');
+                const stageIndex = jQuery(e.target).closest('.arc-stage-edit').data('stage');
+                this.showEditStageDialog(arcIndex, stageIndex);
+            });
 
-        $('#character-arcs').on('click', '.arc-stage-inject', (e) => {
-            const arcIndex = $(e.target).closest('.arc-stage-inject').data('arc');
-            const stageIndex = $(e.target).closest('.arc-stage-inject').data('stage');
-            this.extension.injectArcStageIntoPrompt(arcIndex, stageIndex);
-        });
+            jQuery('#character-arcs').on('click', '.arc-stage-inject', (e) => {
+                const arcIndex = jQuery(e.target).closest('.arc-stage-inject').data('arc');
+                const stageIndex = jQuery(e.target).closest('.arc-stage-inject').data('stage');
+                this.extension.injectArcStageIntoPrompt(arcIndex, stageIndex);
+            });
+        } catch (error) {
+            console.error("Error initializing CharacterArcManager event listeners:", error);
+        }
     }
 
     /**
@@ -205,7 +209,7 @@ export class CharacterArcManager {
      */
     updateArcProgress(arcIndex) {
         const progress = this.calculateArcProgress(arcIndex);
-        const $arc = $(`.character-arc[data-arc-index="${arcIndex}"]`);
+        const $arc = jQuery(`.character-arc[data-arc-index="${arcIndex}"]`);
         $arc.find('.character-arc-progress-bar').css('width', `${progress}%`);
         $arc.find('.character-arc-progress').next('p').text(`${progress}% Complete`);
     }

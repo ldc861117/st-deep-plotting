@@ -102,41 +102,45 @@ export class PlotManager {
      * Initialize event listeners
      */
     initEventListeners() {
-        $('#plot-template-selector').on('change', (e) => {
-            const templateKey = $(e.target).val();
-            if (!templateKey) return;
+        try {
+            jQuery('#plot-template-selector').on('change', (e) => {
+                const templateKey = jQuery(e.target).val();
+                if (!templateKey) return;
 
-            this.extension.loadPlotTemplate(templateKey);
-            $('#active-plot').html(this.renderActivePlot());
-            this.visualizePlot();
-        });
+                this.extension.loadPlotTemplate(templateKey);
+                jQuery('#active-plot').html(this.renderActivePlot());
+                this.visualizePlot();
+            });
 
-        $('#new-plot-btn').on('click', () => {
-            // Show dialog to create new plot
-            this.showNewPlotDialog();
-        });
+            jQuery('#new-plot-btn').on('click', () => {
+                // Show dialog to create new plot
+                this.showNewPlotDialog();
+            });
 
-        // Delegate event for dynamic elements
-        $('#active-plot').on('change', '.plot-stage-checkbox', (e) => {
-            const actIndex = $(e.target).data('act');
-            const stageIndex = $(e.target).data('stage');
-            const isCompleted = $(e.target).prop('checked');
+            // Delegate event for dynamic elements
+            jQuery('#active-plot').on('change', '.plot-stage-checkbox', (e) => {
+                const actIndex = jQuery(e.target).data('act');
+                const stageIndex = jQuery(e.target).data('stage');
+                const isCompleted = jQuery(e.target).prop('checked');
 
-            this.extension.plotProgress.setStageCompleted(actIndex, stageIndex, isCompleted);
-            this.visualizePlot();
-        });
+                this.extension.plotProgress.setStageCompleted(actIndex, stageIndex, isCompleted);
+                this.visualizePlot();
+            });
 
-        $('#active-plot').on('click', '.plot-point-edit', (e) => {
-            const actIndex = $(e.target).closest('.plot-point-edit').data('act');
-            const stageIndex = $(e.target).closest('.plot-point-edit').data('stage');
-            this.showEditStageDialog(actIndex, stageIndex);
-        });
+            jQuery('#active-plot').on('click', '.plot-point-edit', (e) => {
+                const actIndex = jQuery(e.target).closest('.plot-point-edit').data('act');
+                const stageIndex = jQuery(e.target).closest('.plot-point-edit').data('stage');
+                this.showEditStageDialog(actIndex, stageIndex);
+            });
 
-        $('#active-plot').on('click', '.plot-point-inject', (e) => {
-            const actIndex = $(e.target).closest('.plot-point-inject').data('act');
-            const stageIndex = $(e.target).closest('.plot-point-inject').data('stage');
-            this.extension.injectStageIntoPrompt(actIndex, stageIndex);
-        });
+            jQuery('#active-plot').on('click', '.plot-point-inject', (e) => {
+                const actIndex = jQuery(e.target).closest('.plot-point-inject').data('act');
+                const stageIndex = jQuery(e.target).closest('.plot-point-inject').data('stage');
+                this.extension.injectStageIntoPrompt(actIndex, stageIndex);
+            });
+        } catch (error) {
+            console.error("Error initializing PlotManager event listeners:", error);
+        }
     }
 
     /**
@@ -162,13 +166,13 @@ export class PlotManager {
      */
     visualizePlot() {
         if (!this.extension.settings.activePlot) {
-            $('#plot-visualization').html('<p class="no-plot-message">No active plot structure. Select a template to get started.</p>');
+            jQuery('#plot-visualization').html('<p class="no-plot-message">No active plot structure. Select a template to get started.</p>');
             return;
         }
 
         // In a full implementation, this would render a visual representation
         // of the plot structure, perhaps using a library like D3.js
         // For now, we'll use a placeholder visualization
-        $('#plot-visualization').html('<p>Plot visualization placeholder</p>');
+        jQuery('#plot-visualization').html('<p>Plot visualization placeholder</p>');
     }
 }
