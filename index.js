@@ -1,10 +1,12 @@
-// Deep Plotting Extension for SillyTavern
+/**
+ * Deep Plotting Extension for SillyTavern
+ */
 
-// Extension name and settings key
-const extensionName = "deep_plotting";
+// Define a unique module name to avoid conflicts
+const EXTENSION_NAME = 'deep_plotting';
 
-// Add debugging
-console.log(`[${extensionName}] Extension script loading...`);
+// Import any required SillyTavern modules
+// Nothing to import for now, will use getContext()
 
 // Default settings for the extension
 const defaultSettings = {
@@ -177,95 +179,6 @@ class CharacterArcProgress {
     }
 }
 
-// Initialize extension settings
-function loadSettings() {
-    console.log(`[${extensionName}] Loading settings...`);
-    try {
-        // Make sure extension_settings exists
-        if (!window.extension_settings) {
-            console.error(`[${extensionName}] extension_settings is undefined!`);
-            return false;
-        }
-        
-        if (Object.keys(extension_settings).includes(extensionName)) {
-            console.log(`[${extensionName}] Found existing settings`);
-            Object.assign(defaultSettings, extension_settings[extensionName]);
-        } else {
-            console.log(`[${extensionName}] No existing settings found, using defaults`);
-        }
-        extension_settings[extensionName] = defaultSettings;
-        saveSettingsDebounced();
-        console.log(`[${extensionName}] Settings loaded successfully`);
-        return true;
-    } catch (err) {
-        console.error(`[${extensionName}] Error loading settings:`, err);
-        return false;
-    }
-}
-
-// Using a modern approach to wait for ST to be ready
-function waitForSillyTavern() {
-    console.log(`[${extensionName}] Waiting for SillyTavern to be ready...`);
-    
-    const MAX_ATTEMPTS = 30;
-    const RETRY_DELAY = 1000;
-    let attempts = 0;
-    
-    // Check if ST's extension system is ready
-    function checkIfReady() {
-        attempts++;
-        console.log(`[${extensionName}] Check attempt ${attempts}/${MAX_ATTEMPTS}...`);
-        
-        // If we've exhausted our attempts, give up
-        if (attempts > MAX_ATTEMPTS) {
-            console.error(`[${extensionName}] Failed to initialize after ${MAX_ATTEMPTS} attempts`);
-            return;
-        }
-        
-        // Check for all required ST global objects
-        const isSillyTavernReady = 
-            typeof window.extension_settings !== 'undefined' && 
-            typeof window.saveSettingsDebounced === 'function' && 
-            typeof window.eventSource !== 'undefined' &&
-            typeof window.event_types !== 'undefined';
-        
-        if (isSillyTavernReady) {
-            console.log(`[${extensionName}] SillyTavern is ready, initializing extension...`);
-            initializeExtension();
-        } else {
-            console.log(`[${extensionName}] SillyTavern not ready yet, retrying in ${RETRY_DELAY}ms...`);
-            setTimeout(checkIfReady, RETRY_DELAY);
-        }
-    }
-    
-    // Start checking
-    checkIfReady();
-}
-
-// The actual initialization function
-function initializeExtension() {
-    try {
-        if (!loadSettings()) {
-            console.error(`[${extensionName}] Failed to load settings, aborting initialization`);
-            return;
-        }
-        
-        console.log(`[${extensionName}] Creating extension instance...`);
-        const extension = new DeepPlottingExtension();
-        
-        console.log(`[${extensionName}] Creating UI...`);
-        extension.createUI();
-
-        // Register event handlers
-        console.log(`[${extensionName}] Registering event handlers...`);
-        eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
-
-        console.log(`[${extensionName}] Extension loaded successfully!`);
-    } catch (error) {
-        console.error(`[${extensionName}] Error initializing extension:`, error);
-    }
-}
-
 // Simple PlotManager
 class PlotManager {
     constructor(extension) {
@@ -283,102 +196,87 @@ class PlotManager {
                         `<option value="${key}">${plotTemplates[key].name}</option>`
                     ).join('')}
                 </select>
-                <button id="load-plot-template" class="menu_button">Load</button>
+                <button id="load-plot-btn" class="menu_button">Load</button>
             </div>
+            <div id="active-plot">${this.renderActivePlot()}</div>
         `;
-
-        const activePlot = this.extension.settings.activePlot;
-        if (activePlot) {
-            html += `
-                <div id="plot-structure">
-                    <h4>${activePlot.name}</h4>
-                    <p>${activePlot.description}</p>
-                    <div class="plot-acts">
-            `;
-
-            activePlot.acts.forEach((act, actIndex) => {
-                html += `
-                    <div class="plot-act">
-                        <h5>${act.name}</h5>
-                        <p>${act.description}</p>
-                        <div class="plot-stages">
-                `;
-
-                act.stages.forEach((stage, stageIndex) => {
-                    const isCompleted = this.extension.plotProgress.isStageCompleted(actIndex, stageIndex);
-                    html += `
-                        <div class="plot-point" data-act="${actIndex}" data-stage="${stageIndex}">
-                            <div>
-                                <input type="checkbox" id="plot-stage-${actIndex}-${stageIndex}"
-                                    class="plot-stage-checkbox" ${isCompleted ? 'checked' : ''}
-                                    data-act="${actIndex}" data-stage="${stageIndex}">
-                                <label for="plot-stage-${actIndex}-${stageIndex}">${stage.name}</label>
-                            </div>
-                            <div class="plot-point-controls">
-                                <button class="use-plot-point-btn menu_button" data-act="${actIndex}" data-stage="${stageIndex}">
-                                    Use
-                                </button>
-                                <button class="view-plot-point-btn menu_button" data-act="${actIndex}" data-stage="${stageIndex}">
-                                    Info
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                html += `</div></div>`;
-            });
-
-            html += `</div></div>`;
-        }
-
         return html;
     }
 
+    renderActivePlot() {
+        if (!this.extension.settings.activePlot) {
+            return '<p>No active plot. Select a template to begin.</p>';
+        }
+
+        const plot = this.extension.settings.activePlot;
+        return `<div class="active-plot">
+            <h4>${plot.name}</h4>
+            <p>${plot.description}</p>
+            ${this.renderActsList(plot)}
+        </div>`;
+    }
+
+    renderActsList(plot) {
+        return plot.acts.map((act, actIndex) => {
+            return `
+                <div class="plot-act">
+                    <h5>${act.name}</h5>
+                    <p>${act.description}</p>
+                    ${this.renderStagesList(act, actIndex)}
+                </div>
+            `;
+        }).join('');
+    }
+
+    renderStagesList(act, actIndex) {
+        return `<ul class="plot-stages">
+            ${act.stages.map((stage, stageIndex) => {
+                const isCompleted = this.extension.plotProgress.isStageCompleted(actIndex, stageIndex);
+                return `
+                    <li class="plot-stage">
+                        <input type="checkbox" id="stage-${actIndex}-${stageIndex}" 
+                            class="plot-stage-checkbox" data-act="${actIndex}" data-stage="${stageIndex}"
+                            ${isCompleted ? 'checked' : ''}>
+                        <label for="stage-${actIndex}-${stageIndex}">${stage.name}</label>
+                        <button class="inject-btn menu_button" data-act="${actIndex}" data-stage="${stageIndex}">
+                            Inject
+                        </button>
+                    </li>
+                `;
+            }).join('')}
+        </ul>`;
+    }
+
     initEventListeners() {
-        document.getElementById('load-plot-template').addEventListener('click', () => {
-            const select = document.getElementById('plot-template-select');
-            if (select.value) {
-                this.extension.loadPlotTemplate(select.value);
-                this.updateUI();
-            }
+        // Load plot template
+        $('#load-plot-btn').on('click', () => {
+            const templateKey = $('#plot-template-select').val();
+            if (!templateKey) return;
+            this.extension.loadPlotTemplate(templateKey);
+            $('#active-plot').html(this.renderActivePlot());
         });
 
-        document.addEventListener('click', (event) => {
-            if (event.target.classList.contains('plot-stage-checkbox')) {
-                const actIndex = parseInt(event.target.getAttribute('data-act'));
-                const stageIndex = parseInt(event.target.getAttribute('data-stage'));
-                this.extension.plotProgress.setStageCompleted(actIndex, stageIndex, event.target.checked);
-            } else if (event.target.classList.contains('use-plot-point-btn')) {
-                const actIndex = parseInt(event.target.getAttribute('data-act'));
-                const stageIndex = parseInt(event.target.getAttribute('data-stage'));
-                this.extension.injectStageIntoPrompt(actIndex, stageIndex);
-                toastr.success(`Plot point added to context`);
-            } else if (event.target.classList.contains('view-plot-point-btn')) {
-                const actIndex = parseInt(event.target.getAttribute('data-act'));
-                const stageIndex = parseInt(event.target.getAttribute('data-stage'));
+        // Plot stage checkbox events
+        $(document).on('change', '.plot-stage-checkbox', (e) => {
+            const actIndex = $(e.currentTarget).data('act');
+            const stageIndex = $(e.currentTarget).data('stage');
+            const isCompleted = $(e.currentTarget).prop('checked');
+            this.extension.plotProgress.setStageCompleted(actIndex, stageIndex, isCompleted);
+        });
 
-                if (this.extension.settings.activePlot &&
-                    this.extension.settings.activePlot.acts[actIndex] &&
-                    this.extension.settings.activePlot.acts[actIndex].stages[stageIndex]) {
-
-                    const stage = this.extension.settings.activePlot.acts[actIndex].stages[stageIndex];
-                    callPopup(`<h3>${stage.name}</h3><p>${stage.description}</p>`, 'text');
-                }
-            }
+        // Inject button events
+        $(document).on('click', '.inject-btn', (e) => {
+            const actIndex = $(e.currentTarget).data('act');
+            const stageIndex = $(e.currentTarget).data('stage');
+            this.extension.injectStageIntoPrompt(actIndex, stageIndex);
         });
     }
 
     updateUI() {
-        const container = document.getElementById('plot-manager-container');
-        if (container) {
-            container.innerHTML = this.render();
-            this.initEventListeners();
-        }
+        $('#active-plot').html(this.renderActivePlot());
     }
 }
 
-// Simple CharacterArcManager
 class CharacterArcManager {
     constructor(extension) {
         this.extension = extension;
@@ -387,119 +285,106 @@ class CharacterArcManager {
     render() {
         let html = `
             <h3>Character Arcs</h3>
-            <div class="plot-header">
-                <select id="character-arc-template" class="text_pole">
+            <div class="char-arc-create">
+                <select id="arc-template-select" class="text_pole">
                     <option value="">Select an arc type...</option>
                     ${Object.keys(characterArcTemplates).map(key =>
                         `<option value="${key}">${characterArcTemplates[key].name}</option>`
                     ).join('')}
                 </select>
-                <input type="text" id="character-arc-name" class="text_pole"
-                    placeholder="Character name">
-                <button id="add-character-arc" class="menu_button">Add</button>
+                <input type="text" id="char-name-input" class="text_pole" placeholder="Character name">
+                <button id="create-arc-btn" class="menu_button">Create</button>
             </div>
+            <div id="character-arcs">${this.renderCharacterArcs()}</div>
         `;
-
-        const arcs = this.extension.settings.characterArcs || [];
-        if (arcs.length > 0) {
-            html += `<div id="character-arcs-list">`;
-
-            arcs.forEach((arc, arcIndex) => {
-                html += `
-                    <div class="character-arc">
-                        <h4>${arc.character}: ${arc.arcType}</h4>
-                        <p>${arc.description || ""}</p>
-                        <div class="plot-stages">
-                `;
-
-                arc.stages.forEach((stage, stageIndex) => {
-                    const isCompleted = this.extension.characterArcProgress.isStageCompleted(arcIndex, stageIndex);
-                    html += `
-                        <div class="plot-point" data-arc="${arcIndex}" data-stage="${stageIndex}">
-                            <div>
-                                <input type="checkbox" id="arc-stage-${arcIndex}-${stageIndex}"
-                                    class="arc-stage-checkbox" ${isCompleted ? 'checked' : ''}
-                                    data-arc="${arcIndex}" data-stage="${stageIndex}">
-                                <label for="arc-stage-${arcIndex}-${stageIndex}">${stage.name}</label>
-                            </div>
-                            <div class="plot-point-controls">
-                                <button class="use-arc-point-btn menu_button" data-arc="${arcIndex}" data-stage="${stageIndex}">
-                                    Use
-                                </button>
-                                <button class="view-arc-point-btn menu_button" data-arc="${arcIndex}" data-stage="${stageIndex}">
-                                    Info
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                html += `</div></div>`;
-            });
-
-            html += `</div>`;
-        }
-
         return html;
     }
 
-    initEventListeners() {
-        document.getElementById('add-character-arc').addEventListener('click', () => {
-            const template = document.getElementById('character-arc-template').value;
-            const characterName = document.getElementById('character-arc-name').value.trim();
+    renderCharacterArcs() {
+        if (!this.extension.settings.characterArcs || this.extension.settings.characterArcs.length === 0) {
+            return '<p>No character arcs created yet.</p>';
+        }
 
-            if (template && characterName) {
-                this.extension.createCharacterArc(template, characterName);
-                this.updateUI();
-            } else {
-                toastr.warning('Please select an arc type and enter a character name');
-            }
+        return this.extension.settings.characterArcs.map((arc, arcIndex) => {
+            return `
+                <div class="character-arc">
+                    <h5>${arc.character} - ${arc.arcType}</h5>
+                    <button class="delete-arc-btn menu_button" data-arc="${arcIndex}">Delete</button>
+                    ${this.renderArcStages(arc, arcIndex)}
+                </div>
+            `;
+        }).join('');
+    }
+
+    renderArcStages(arc, arcIndex) {
+        return `<ul class="arc-stages">
+            ${arc.stages.map((stage, stageIndex) => {
+                const isCompleted = this.extension.characterArcProgress.isStageCompleted(arcIndex, stageIndex);
+                return `
+                    <li class="arc-stage">
+                        <input type="checkbox" id="arc-stage-${arcIndex}-${stageIndex}" 
+                            class="arc-stage-checkbox" data-arc="${arcIndex}" data-stage="${stageIndex}"
+                            ${isCompleted ? 'checked' : ''}>
+                        <label for="arc-stage-${arcIndex}-${stageIndex}">${stage.name}</label>
+                        <button class="inject-arc-btn menu_button" data-arc="${arcIndex}" data-stage="${stageIndex}">
+                            Inject
+                        </button>
+                    </li>
+                `;
+            }).join('')}
+        </ul>`;
+    }
+
+    initEventListeners() {
+        // Create character arc
+        $('#create-arc-btn').on('click', () => {
+            const templateKey = $('#arc-template-select').val();
+            const characterName = $('#char-name-input').val().trim();
+            if (!templateKey || !characterName) return;
+            
+            this.extension.createCharacterArc(templateKey, characterName);
+            $('#character-arcs').html(this.renderCharacterArcs());
         });
 
-        document.addEventListener('click', (event) => {
-            if (event.target.classList.contains('arc-stage-checkbox')) {
-                const arcIndex = parseInt(event.target.getAttribute('data-arc'));
-                const stageIndex = parseInt(event.target.getAttribute('data-stage'));
-                this.extension.characterArcProgress.setStageCompleted(arcIndex, stageIndex, event.target.checked);
-            } else if (event.target.classList.contains('use-arc-point-btn')) {
-                const arcIndex = parseInt(event.target.getAttribute('data-arc'));
-                const stageIndex = parseInt(event.target.getAttribute('data-stage'));
-                this.extension.injectArcStageIntoPrompt(arcIndex, stageIndex);
-                toastr.success(`Character arc point added to context`);
-            } else if (event.target.classList.contains('view-arc-point-btn')) {
-                const arcIndex = parseInt(event.target.getAttribute('data-arc'));
-                const stageIndex = parseInt(event.target.getAttribute('data-stage'));
+        // Character arc stage checkbox events
+        $(document).on('change', '.arc-stage-checkbox', (e) => {
+            const arcIndex = $(e.currentTarget).data('arc');
+            const stageIndex = $(e.currentTarget).data('stage');
+            const isCompleted = $(e.currentTarget).prop('checked');
+            this.extension.characterArcProgress.setStageCompleted(arcIndex, stageIndex, isCompleted);
+        });
 
-                if (this.extension.settings.characterArcs[arcIndex] &&
-                    this.extension.settings.characterArcs[arcIndex].stages[stageIndex]) {
+        // Inject button events
+        $(document).on('click', '.inject-arc-btn', (e) => {
+            const arcIndex = $(e.currentTarget).data('arc');
+            const stageIndex = $(e.currentTarget).data('stage');
+            this.extension.injectArcStageIntoPrompt(arcIndex, stageIndex);
+        });
 
-                    const stage = this.extension.settings.characterArcs[arcIndex].stages[stageIndex];
-                    callPopup(`<h3>${stage.name}</h3><p>${stage.description}</p>`, 'text');
-                }
-            }
+        // Delete character arc
+        $(document).on('click', '.delete-arc-btn', (e) => {
+            const arcIndex = $(e.currentTarget).data('arc');
+            this.extension.settings.characterArcs.splice(arcIndex, 1);
+            saveSettingsDebounced();
+            $('#character-arcs').html(this.renderCharacterArcs());
         });
     }
 
     updateUI() {
-        const container = document.getElementById('character-arc-container');
-        if (container) {
-            container.innerHTML = this.render();
-            this.initEventListeners();
-        }
+        $('#character-arcs').html(this.renderCharacterArcs());
     }
 }
 
-// Main extension class
 class DeepPlottingExtension {
     constructor() {
-        this.settings = extension_settings[extensionName];
+        // Get extension settings
+        this.settings = extension_settings[EXTENSION_NAME];
         this.plotManager = new PlotManager(this);
         this.characterArcManager = new CharacterArcManager(this);
         this.plotProgress = new PlotProgress(this.settings);
         this.characterArcProgress = new CharacterArcProgress(this.settings);
     }
 
-    // Load a plot template
     loadPlotTemplate(templateKey) {
         const template = plotTemplates[templateKey];
         if (!template) return;
@@ -507,13 +392,8 @@ class DeepPlottingExtension {
         // Create a copy of the template
         this.settings.activePlot = JSON.parse(JSON.stringify(template));
         saveSettingsDebounced();
-
-        // Clear completed stages
-        this.settings.completedStages = {};
-        saveSettingsDebounced();
     }
 
-    // Create a new character arc
     createCharacterArc(templateKey, characterName) {
         const template = characterArcTemplates[templateKey];
         if (!template) return -1;
@@ -535,7 +415,6 @@ class DeepPlottingExtension {
         return arcIndex;
     }
 
-    // Inject a plot stage into the prompt
     injectStageIntoPrompt(actIndex, stageIndex) {
         if (!this.settings.activePlot ||
             !this.settings.activePlot.acts[actIndex] ||
@@ -553,16 +432,17 @@ class DeepPlottingExtension {
         const position = this.settings.plotPosition === 'before' ? 0 : 1;
 
         context.setExtensionPrompt(
-            extensionName,
+            EXTENSION_NAME,
             prompt,
             position,
             0, // depth
             false, // scan
             0, // role (system)
         );
+
+        toastr.success(`Injected plot stage: ${act.name} - ${stage.name}`);
     }
 
-    // Inject a character arc stage into the prompt
     injectArcStageIntoPrompt(arcIndex, stageIndex) {
         if (!this.settings.characterArcs ||
             !this.settings.characterArcs[arcIndex] ||
@@ -580,41 +460,45 @@ class DeepPlottingExtension {
         const position = this.settings.plotPosition === 'before' ? 0 : 1;
 
         context.setExtensionPrompt(
-            extensionName,
+            EXTENSION_NAME,
             prompt,
             position,
             0, // depth
             false, // scan
             0, // role (system),
         );
+
+        toastr.success(`Injected character arc stage for ${arc.character}: ${stage.name}`);
     }
 
-    // Create extension UI
     createUI() {
         const html = `
-            <div id="deep_plotting_settings">
+            <div id="${EXTENSION_NAME}_settings" class="extension_settings">
                 <div class="inline-drawer">
                     <div class="inline-drawer-toggle inline-drawer-header">
                         <b>Deep Plotting</b>
-                        <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                        <div class="inline-drawer-icon fa-solid fa-circle-chevron-down"></div>
                     </div>
                     <div class="inline-drawer-content">
-                        <label class="checkbox_label" for="deep_plotting_enabled">
-                            <input type="checkbox" id="deep_plotting_enabled" ${this.settings.enabled ? 'checked' : ''}>
+                        <label class="checkbox_label">
+                            <input type="checkbox" id="${EXTENSION_NAME}_enabled" ${this.settings.enabled ? 'checked' : ''}>
                             <span>Enable Deep Plotting</span>
                         </label>
-                        <label class="checkbox_label" for="deep_plotting_auto_inject">
-                            <input type="checkbox" id="deep_plotting_auto_inject" ${this.settings.autoInject ? 'checked' : ''}>
+                        <label class="checkbox_label">
+                            <input type="checkbox" id="${EXTENSION_NAME}_auto_inject" ${this.settings.autoInject ? 'checked' : ''}>
                             <span>Auto-inject into prompts</span>
                         </label>
+                        
                         <div class="deep_plotting_position">
                             <label>Position:</label>
                             <label class="radio_label">
-                                <input type="radio" name="deep_plotting_position" value="before" ${this.settings.plotPosition === 'before' ? 'checked' : ''}>
+                                <input type="radio" name="${EXTENSION_NAME}_position" value="before" 
+                                    ${this.settings.plotPosition === 'before' ? 'checked' : ''}>
                                 <span>Before Story String</span>
                             </label>
                             <label class="radio_label">
-                                <input type="radio" name="deep_plotting_position" value="after" ${this.settings.plotPosition === 'after' ? 'checked' : ''}>
+                                <input type="radio" name="${EXTENSION_NAME}_position" value="after" 
+                                    ${this.settings.plotPosition === 'after' ? 'checked' : ''}>
                                 <span>After Story String</span>
                             </label>
                         </div>
@@ -629,7 +513,8 @@ class DeepPlottingExtension {
 
                         <div class="plot-section">
                             <h3>Plot Notes</h3>
-                            <textarea id="plot-notes" class="text_pole textarea_compact" rows="4" placeholder="Enter your plot notes here...">${this.settings.plotNotes || ''}</textarea>
+                            <textarea id="plot-notes" class="text_pole textarea_compact" rows="4" 
+                                placeholder="Enter your plot notes here...">${this.settings.plotNotes || ''}</textarea>
                         </div>
                     </div>
                 </div>
@@ -640,20 +525,19 @@ class DeepPlottingExtension {
         this.initEventListeners();
     }
 
-    // Initialize event listeners
     initEventListeners() {
-        // Core settings listeners
-        $('#deep_plotting_enabled').on('change', (e) => {
+        // Main settings
+        $(`#${EXTENSION_NAME}_enabled`).on('change', (e) => {
             this.settings.enabled = !!$(e.target).prop('checked');
             saveSettingsDebounced();
         });
 
-        $('#deep_plotting_auto_inject').on('change', (e) => {
+        $(`#${EXTENSION_NAME}_auto_inject`).on('change', (e) => {
             this.settings.autoInject = !!$(e.target).prop('checked');
             saveSettingsDebounced();
         });
 
-        $('input[name="deep_plotting_position"]').on('change', (e) => {
+        $(`input[name="${EXTENSION_NAME}_position"]`).on('change', (e) => {
             this.settings.plotPosition = $(e.target).val();
             saveSettingsDebounced();
         });
@@ -664,17 +548,11 @@ class DeepPlottingExtension {
         });
 
         // Drawer toggle
-        $('#deep_plotting_settings .inline-drawer-toggle').on('click', function() {
-            const $icon = $(this).find('.inline-drawer-icon');
-            const $content = $(this).next('.inline-drawer-content');
-
-            if ($content.is(':visible')) {
-                $content.slideUp(200);
-                $icon.removeClass('down').addClass('right');
-            } else {
-                $content.slideDown(200);
-                $icon.removeClass('right').addClass('down');
-            }
+        $('.inline-drawer-toggle').on('click', function() {
+            $(this).next('.inline-drawer-content').slideToggle(200);
+            $(this).find('.inline-drawer-icon')
+                .toggleClass('fa-circle-chevron-down')
+                .toggleClass('fa-circle-chevron-up');
         });
 
         // Initialize component event listeners
@@ -685,16 +563,39 @@ class DeepPlottingExtension {
 
 // Handle chat changes
 function onChatChanged() {
-    if (!extension_settings[extensionName].enabled) return;
+    const settings = extension_settings[EXTENSION_NAME];
+    if (!settings || !settings.enabled) return;
 
     // Auto inject logic can go here
-    if (extension_settings[extensionName].autoInject) {
+    if (settings.autoInject) {
         // Implement auto inject logic based on context
     }
 }
 
-// Initialize extension - start the waiting process when document is ready
-$(document).ready(function() {
-    console.log(`[${extensionName}] Document ready, starting initialization...`);
-    waitForSillyTavern();
+// Initialize extension settings
+function loadSettings() {
+    // Initialize settings if they don't exist
+    if (!extension_settings[EXTENSION_NAME]) {
+        extension_settings[EXTENSION_NAME] = defaultSettings;
+        saveSettingsDebounced();
+    }
+}
+
+// Module initialization
+jQuery(function() {
+    // This runs when the document is ready
+    try {
+        // This is the standard SillyTavern extension pattern
+        loadSettings();
+        const extension = new DeepPlottingExtension();
+        extension.createUI();
+        
+        // Register event handlers
+        eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
+        
+        // Add console log for debugging
+        console.log(`${EXTENSION_NAME} extension loaded`);
+    } catch (error) {
+        console.error(`Error loading ${EXTENSION_NAME} extension:`, error);
+    }
 });
