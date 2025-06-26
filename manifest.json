@@ -1,13 +1,11 @@
 {
-    "display_name": "Deep Plotting",
-    "loading_order": 10,
-    "requires": [],
-    "optional": [],
-    "js": "index.js",
-    "css": "style.css",
-    "author": "User",
-    "version": "1.0.0",
-    "homePage": "https://github.com/ldc861117/st-deep-plotting",
-    "description": "A SillyTavern extension for enhanced storytelling through structured plot management",
-    "update_url": "https://github.com/ldc861117/st-deep-plotting/raw/main/manifest.json"
-}
+  "display_name": "Deep Plotter",
+  "loading_order": 310,
+  "requires": [],
+  "optional": [],
+  "js": "dist/index.js",
+  "css": "dist/style.css",
+  "author": "st-deep-plotting team",
+  "version": "0.0.1",
+  "homePage": "https://github.com/your-org/sillytavern-deep-plotter"
+} 

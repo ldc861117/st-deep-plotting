@@ -1,26 +1,25 @@
 {
-  "name": "st-deep-plotting",
-  "version": "1.0.0",
-  "description": "A SillyTavern extension for enhanced storytelling through structured plot management",
-  "main": "index.js",
+  "name": "sillytavern-deep-plotter",
+  "version": "0.0.1",
+  "description": "Deep Plotter extension for SillyTavern",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "cross-env NODE_ENV=development sass styles/main.scss dist/style.css --source-map & cross-env NODE_ENV=development webpack --mode development --config webpack.config.cjs --watch",
+    "build": "cross-env NODE_ENV=production sass styles/main.scss dist/style.css --no-source-map && cross-env NODE_ENV=production webpack --mode production --config webpack.config.cjs"
   },
-  "keywords": [
-    "sillytavern",
-    "extension",
-    "plot",
-    "storytelling",
-    "narrative"
-  ],
-  "author": "Your Name",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/ldc861117/st-deep-plotting.git"
+  "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@babel/preset-env": "^7.24.0",
+    "@babel/preset-typescript": "^7.26.0",
+    "babel-loader": "^9.1.3",
+    "cross-env": "^7.0.3",
+    "sass": "^1.83.4",
+    "terser-webpack-plugin": "^5.3.10",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.7.3",
+    "webpack-cli": "^5.1.4"
   },
-  "bugs": {
-    "url": "https://github.com/ldc861117/st-deep-plotting/issues"
-  },
-  "homepage": "https://github.com/ldc861117/st-deep-plotting"
-}
+  "dependencies": {
+    "sillytavern-utils-lib": "^1.0.47"
+  }
+} 
