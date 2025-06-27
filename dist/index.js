@@ -75,7 +75,25 @@ function main() {
     console.log(`[${extensionName}] Extension loaded.`);
   }
 
-  waitForToolbars();
+  // Preferred: use SillyTavern helper if present
+  if (typeof window !== 'undefined' && window.SillyTavern && typeof window.SillyTavern.registerExtension === 'function') {
+    window.SillyTavern.registerExtension({
+      id: extensionName,
+      name: 'Deep Plotter',
+      icon: 'fa-brands fa-wpexplorer',
+      onClick: () => {
+        const echo = window?.st_echo;
+        if (typeof echo === 'function') {
+          echo('info', '[Deep-Plotter] Popup coming soon!');
+        } else {
+          alert('Deep Plotter popup coming soon!');
+        }
+      },
+    });
+  } else {
+    // Fallback to raw DOM injection if registerExtension is unavailable
+    waitForToolbars();
+  }
 }
 
 // Ensure we run after the DOM is ready so the toolbar exists

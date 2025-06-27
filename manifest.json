@@ -6,6 +6,6 @@
   "js": "dist/index.js",
   "css": "dist/style.css",
   "author": "st-deep-plotting team",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "homePage": "https://github.com/your-org/sillytavern-deep-plotter"
 } 
