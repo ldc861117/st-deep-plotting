@@ -29,11 +29,15 @@ function onExtensionLoaded() {
     console.log(`[${extensionName}] Extension loaded.`);
   }
   if (typeof window !== 'undefined') {
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', injectIcon);
-    } else {
-      injectIcon();
-    }
+    const attempt = () => {
+      const targets = document.querySelectorAll('.form_create_bottom_buttons_block, #GroupFavDelOkBack, #form_character_search_form');
+      if (targets.length) {
+        injectIcon();
+      } else {
+        setTimeout(attempt, 500);
+      }
+    };
+    attempt();
   }
 }
 
