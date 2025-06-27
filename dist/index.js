@@ -34,6 +34,12 @@ function observeContainers() {
 function waitForToolbars() {
   if (document.querySelectorAll(TARGETS).length) {
     injectIcon();
+    const echo = window?.st_echo;
+    if (typeof echo === 'function') {
+      echo('success', '[Deep-Plotter] Button added.');
+    } else {
+      console.log('[Deep-Plotter] Button added.');
+    }
     observeContainers();
   } else {
     setTimeout(waitForToolbars, 500);
