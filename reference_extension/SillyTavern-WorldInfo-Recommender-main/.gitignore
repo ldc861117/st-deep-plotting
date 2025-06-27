@@ -6,6 +6,7 @@ node_modules/
 public/scripts/extensions/third-party
 .aider*
 .env
+.cursor/
 *.map
 repopack-output.txt
 scripts/*.json
