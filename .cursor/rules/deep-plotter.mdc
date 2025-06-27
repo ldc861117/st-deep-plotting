@@ -3,3 +3,50 @@ description:
 globs:
 alwaysApply: false
 ---
+---
+description: Guidance for AI and developers working on the SillyTavern Deep-Plotter extension so that generated code and suggestions stay consistent with the architecture and tooling.
+globs:
+  - "reference_extension/**/*"
+  - "*.md"
+alwaysApply: true
+---
+
+## SillyTavern Deep-Plotter Extension – Project Rules
+
+1. **Language & Tooling**
+   • All source code must be **TypeScript** in strict mode and compiled with the existing **webpack** setup located at `reference_extension/SillyTavern-WorldInfo-Recommender-main/webpack.config.cjs`.  
+   • Do **not** introduce alternative build systems (e.g. Vite, Rollup).  
+   • Use ECMAScript modules (`import` / `export`) exclusively.
+
+2. **Project Layout**
+   • New extension lives under `reference_extension/deep-plotter/` following the same structure as the example extension.  
+   • Put feature-specific logic in its own file under `src/`. Keep files ≤ 300 LOC.  
+   • Common helpers belong in `src/utils/`.
+
+3. **Extension API Usage**
+   • Register slash commands via `globalContext.SlashCommandParser.addCommandObject` with clear `helpString` and correct `returns`.  
+   • UI pop-ups must leverage SillyTavern CSS vars (e.g. `--SmartThemeBodyColor`, `--active`).  
+   • Avoid direct DOM manipulation; prefer ST helper components when available.
+
+4. **LLM Interface**
+   • Implement and reuse a wrapper `src/api.ts` providing `callLLM(prompt: string, opts?: { temperature?: number; maxTokens?: number }): Promise<any>`.  
+   • Always JSON-parse responses and validate against TypeScript interfaces. Show a toast and abort on invalid JSON.
+
+5. **Prompt Management**
+   • Store reusable prompt templates in `src/prompts.ts`.  
+   • Separate `systemPrompt`, `userPrompt`, and `formatInstructions` constants.
+
+6. **Testing**
+   • Add lightweight Jest unit tests for pure utility functions in `__tests__/`.  
+   • No end-to-end tests required for MVP.
+
+7. **Code Style**
+   • Follow Prettier defaults: 2-space indent, semicolons, single quotes.  
+   • Provide explicit types for every function parameter and return value.  
+   • Prefer `const` over `let` where possible.
+
+8. **Documentation**
+   • Every exported symbol requires a concise JSDoc block.  
+   • Keep `readme.md` updated with newly public APIs after each significant change.
+
+@reference_extension/SillyTavern-WorldInfo-Recommender-main/tsconfig.json
