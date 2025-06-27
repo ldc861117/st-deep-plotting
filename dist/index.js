@@ -9,7 +9,9 @@ function injectIcon() {
   if (document.querySelector('.deepPlotter-icon')) return;
 
   const icon = document.createElement('div');
-  icon.className = 'menu_button fa-solid fa-sitemap interactable deepPlotter-icon';
+  // Using wpexplorer icon which is bundled with ST FA set (same as reference extension)
+  icon.className = 'menu_button fa-brands fa-wpexplorer interactable deepPlotter-icon';
+  icon.textContent = '';
   icon.title = 'Deep Plotter';
 
   icon.addEventListener('click', () => {
