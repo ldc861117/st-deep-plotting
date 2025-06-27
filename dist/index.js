@@ -24,6 +24,22 @@ function injectIcon() {
   });
 }
 
+function observeContainers() {
+  document.querySelectorAll(TARGETS).forEach((parent) => {
+    const obs = new MutationObserver(() => injectIcon());
+    obs.observe(parent, { childList: true });
+  });
+}
+
+function waitForToolbars() {
+  if (document.querySelectorAll(TARGETS).length) {
+    injectIcon();
+    observeContainers();
+  } else {
+    setTimeout(waitForToolbars, 500);
+  }
+}
+
 function main() {
   const echo = window?.st_echo;
   if (typeof echo === 'function') {
@@ -32,7 +48,7 @@ function main() {
     console.log(`[${extensionName}] Extension loaded.`);
   }
 
-  injectIcon();
+  waitForToolbars();
 }
 
 // Ensure we run after the DOM is ready so the toolbar exists
