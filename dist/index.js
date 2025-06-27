@@ -37,6 +37,8 @@ function onExtensionLoaded() {
   }
 }
 
+onExtensionLoaded();
+
 export default {
   onExtensionLoaded,
 }; 
