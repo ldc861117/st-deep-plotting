@@ -34,6 +34,25 @@ function observeContainers() {
 function waitForToolbars() {
   if (document.querySelectorAll(TARGETS).length) {
     injectIcon();
+    // Ensure we have basic styling so the icon is visible
+    const styleId = 'deep-plotter-inline-style';
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = `
+        .deepPlotter-icon {
+          font-size: 18px;
+          line-height: 1;
+          margin-right: 4px;
+          color: var(--SmartThemeBodyColor, #fff);
+        }
+        .deepPlotter-icon:hover {
+          color: var(--SmartThemeAccent, #64b5f6);
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
     const echo = window?.st_echo;
     if (typeof echo === 'function') {
       echo('success', '[Deep-Plotter] Button added.');
